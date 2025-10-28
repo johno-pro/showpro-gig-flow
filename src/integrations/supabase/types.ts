@@ -56,6 +56,13 @@ export type Database = {
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "artists_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers_basic"
+            referencedColumns: ["id"]
+          },
         ]
       }
       booking_series: {
@@ -208,10 +215,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
             referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks_basic"
             referencedColumns: ["id"]
           },
           {
@@ -226,6 +247,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers_basic"
             referencedColumns: ["id"]
           },
           {
@@ -343,10 +371,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contacts_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks_basic"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contacts_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers_basic"
             referencedColumns: ["id"]
           },
         ]
@@ -661,6 +703,13 @@ export type Database = {
             referencedRelation: "parks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "venues_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks_basic"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -680,6 +729,147 @@ export type Database = {
           act_type?: string | null
           id?: string | null
           name?: string | null
+        }
+        Relationships: []
+      }
+      contacts_basic: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          department_id: string | null
+          id: string | null
+          name: string | null
+          park_id: string | null
+          supplier_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string | null
+          name?: string | null
+          park_id?: string | null
+          supplier_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string | null
+          name?: string | null
+          park_id?: string | null
+          supplier_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers_basic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parks_basic: {
+        Row: {
+          address: string | null
+          client_id: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          postcode: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          postcode?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          postcode?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers_basic: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
