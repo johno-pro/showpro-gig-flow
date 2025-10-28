@@ -17,6 +17,7 @@ export default function DataImport() {
     venues: number;
     artists: number;
     bookings: number;
+    bookingsSkipped: number;
     errors: string[];
   } | null>(null);
 
@@ -382,6 +383,7 @@ export default function DataImport() {
         venues: venuesCount,
         artists: artistsCount,
         bookings: bookingsCount,
+        bookingsSkipped: bookingsSkipped,
         errors,
       });
     } catch (error: any) {
@@ -451,7 +453,12 @@ export default function DataImport() {
                 <p>✓ {results.clients} clients imported</p>
                 <p>✓ {results.venues} venues imported</p>
                 <p>✓ {results.artists} artists imported</p>
-                {results.bookings > 0 && <p>✓ {results.bookings} bookings imported</p>}
+                <p>
+                  ✓ {results.bookings} bookings imported
+                  {results.bookingsSkipped > 0 && (
+                    <span className="text-amber-600"> ({results.bookingsSkipped} skipped as duplicates)</span>
+                  )}
+                </p>
               </div>
               {results.errors.length > 0 && (
                 <div className="mt-4 space-y-2">
