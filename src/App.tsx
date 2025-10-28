@@ -18,6 +18,9 @@ import ClientDetails from "./pages/ClientDetails";
 import Venues from "./pages/Venues";
 import NewVenue from "./pages/NewVenue";
 import VenueDetails from "./pages/VenueDetails";
+import Parks from "./pages/Parks";
+import NewPark from "./pages/NewPark";
+import ParkDetails from "./pages/ParkDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
@@ -159,6 +162,36 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <ClientDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parks"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Parks />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parks/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewPark />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parks/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ParkDetails />
                   </Layout>
                 </ProtectedRoute>
               }
