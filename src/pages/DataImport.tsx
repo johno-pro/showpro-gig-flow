@@ -153,31 +153,62 @@ export default function DataImport() {
   const importBookings = async (csvData: string[][]): Promise<number> => {
     let imported = 0;
     
-    // Skip header row
-    const dataRows = csvData.filter((row, idx) => idx > 0 && row.length > 0);
+    // Skip header row and filter valid rows (exclude totals and empty rows)
+    const dataRows = csvData.filter((row, idx) => 
+      idx > 0 && 
+      row.length > 0 && 
+      row[0]?.trim() !== 'TOTAL' &&
+      row[0]?.trim() !== ''
+    );
+
+    // First, fetch all clients, locations, and artists to create lookup maps
+    const { data: clients } = await supabase.from('clients').select('id, name');
+    const { data: locations } = await supabase.from('locations').select('id, name');
+    const { data: artists } = await supabase.from('artists').select('id, name');
+
+    const clientMap = new Map(clients?.map(c => [c.name.toLowerCase(), c.id]) || []);
+    const locationMap = new Map(locations?.map(l => [l.name.toLowerCase(), l.id]) || []);
+    const artistMap = new Map(artists?.map(a => [a.name.toLowerCase(), a.id]) || []);
 
     for (const row of dataRows) {
       try {
+        // Parse date from DD/MMM/YYYY to YYYY-MM-DD
+        const dateStr = row[1]?.trim();
+        let bookingDate = null;
+        if (dateStr) {
+          const [day, monthStr, year] = dateStr.split('/');
+          const monthMap: { [key: string]: string } = {
+            Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+            Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+          };
+          const month = monthMap[monthStr];
+          bookingDate = `${year}-${month}-${day.padStart(2, '0')}`;
+        }
+
+        // Look up IDs by name
+        const clientName = row[2]?.trim().toLowerCase();
+        const locationName = row[3]?.trim().toLowerCase();
+        const artistName = row[4]?.trim();
+        
+        const clientId = clientMap.get(clientName) || null;
+        const locationId = locationMap.get(locationName) || null;
+        const artistId = artistName && artistName !== '?' ? artistMap.get(artistName.toLowerCase()) || null : null;
+
+        // Parse fee amount (remove commas)
+        const feeStr = row[6]?.trim()?.replace(/,/g, '');
+        const artistFee = feeStr ? parseFloat(feeStr) : null;
+
         const bookingData: any = {
           job_code: row[0]?.trim() || null,
-          booking_date: row[1]?.trim() || null,
-          start_time: row[2]?.trim() || null,
-          end_time: row[3]?.trim() || null,
-          status: row[4]?.trim() || 'enquiry',
-          client_id: row[5]?.trim() || null,
-          location_id: row[6]?.trim() || null,
-          venue_id: row[7]?.trim() || null,
-          artist_id: row[8]?.trim() || null,
-          fee_model: row[9]?.trim() || 'commission',
-          artist_fee: row[10]?.trim() ? parseFloat(row[10]) : null,
-          client_fee: row[11]?.trim() ? parseFloat(row[11]) : 0,
-          commission_rate: row[12]?.trim() ? parseFloat(row[12]) : null,
-          vat_applicable: row[13]?.trim() === 'true' || row[13]?.trim() === '1',
-          deposit_amount: row[14]?.trim() ? parseFloat(row[14]) : null,
-          deposit_paid: row[15]?.trim() === 'true' || row[15]?.trim() === '1',
-          balance_paid: row[16]?.trim() === 'true' || row[16]?.trim() === '1',
-          invoiced: row[17]?.trim() === 'true' || row[17]?.trim() === '1',
-          notes: row[18]?.trim() || null,
+          booking_date: bookingDate,
+          status: 'confirmed',
+          client_id: clientId,
+          location_id: locationId,
+          artist_id: artistId,
+          fee_model: 'commission',
+          artist_fee: artistFee,
+          client_fee: 0, // Set to 0 as requested
+          notes: row[5]?.trim() || null, // Job description
         };
 
         const { error } = await supabase
@@ -236,6 +267,16 @@ export default function DataImport() {
         const bookingsData = parseCSV(bookingText);
         bookingsCount = await importBookings(bookingsData);
         toast.success(`Imported ${bookingsCount} bookings`);
+      } else {
+        // Try to fetch from public folder
+        try {
+          const bookingsCSV = await fetch('/BOOKINGS.csv').then(r => r.text());
+          const bookingsData = parseCSV(bookingsCSV);
+          bookingsCount = await importBookings(bookingsData);
+          toast.success(`Imported ${bookingsCount} bookings`);
+        } catch (e) {
+          console.log('No bookings CSV file found in public folder');
+        }
       }
 
       setProgress(100);
@@ -276,11 +317,12 @@ export default function DataImport() {
               <li>CLIENTS.csv → clients table</li>
               <li>VENUES.csv → venues table (linked to clients)</li>
               <li>ARTISTS_AS_OF_16-10-25.csv → artists table</li>
+              <li>BOOKINGS.csv → bookings table (if available)</li>
             </ul>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="booking-csv">Upload Bookings CSV (Optional)</Label>
+            <Label htmlFor="booking-csv">Upload Bookings CSV</Label>
             <Input
               id="booking-csv"
               type="file"
@@ -289,7 +331,10 @@ export default function DataImport() {
               disabled={importing}
             />
             <p className="text-xs text-muted-foreground">
-              Expected columns: job_code, booking_date, start_time, end_time, status, client_id, location_id, venue_id, artist_id, fee_model, artist_fee (buy fee), client_fee (sell fee - defaults to 0), commission_rate, vat_applicable, deposit_amount, deposit_paid, balance_paid, invoiced, notes
+              Expected columns: Code, Date (DD/MMM/YYYY), Client, Location, Artist, Job, Fees (buy fee)
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Note: Client, Location, and Artist names must match existing records. Sell fees will be set to 0.
             </p>
           </div>
 
