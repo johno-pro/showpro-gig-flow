@@ -50,11 +50,22 @@ export default function DataImport() {
     // Skip header rows and empty rows
     const dataRows = csvData.filter((row, idx) => idx > 0 && row[1]?.trim());
 
+    // Fetch existing clients
+    const { data: existingClients } = await supabase.from('clients').select('id, name');
+    const existingMap = new Map(existingClients?.map(c => [c.name.toLowerCase().trim(), c.id]) || []);
+
     for (const row of dataRows) {
       const companyName = row[1]?.trim();
       const address = row[4]?.trim();
       
       if (!companyName || companyName === 'VENUE is CLIENT') continue;
+
+      // Check if client already exists
+      const existingId = existingMap.get(companyName.toLowerCase().trim());
+      if (existingId) {
+        clientMap.set(companyName, existingId);
+        continue;
+      }
 
       try {
         const { data, error } = await supabase
@@ -69,6 +80,7 @@ export default function DataImport() {
         if (error) throw error;
         if (data) {
           clientMap.set(companyName, data.id);
+          existingMap.set(companyName.toLowerCase().trim(), data.id);
           imported++;
         }
       } catch (error: any) {
@@ -85,6 +97,10 @@ export default function DataImport() {
     // Skip header and filter valid rows
     const dataRows = csvData.filter((row, idx) => idx > 0 && row[2]?.trim());
 
+    // Fetch existing venues
+    const { data: existingVenues } = await supabase.from('venues').select('name');
+    const existingNames = new Set(existingVenues?.map(v => v.name.toLowerCase().trim()) || []);
+
     for (const row of dataRows) {
       const companyName = row[1]?.trim();
       const venueName = row[2]?.trim();
@@ -93,6 +109,11 @@ export default function DataImport() {
 
       if (!venueName) continue;
 
+      // Skip if venue already exists
+      if (existingNames.has(venueName.toLowerCase().trim())) {
+        continue;
+      }
+
       const clientId = clientMap.get(companyName);
 
       try {
@@ -100,11 +121,12 @@ export default function DataImport() {
           .from('venues')
           .insert({
             name: venueName,
-            park_id: clientId || null,
+            location_id: clientId || null,
             notes: [town, address].filter(Boolean).join(', ') || null,
           });
 
         if (error) throw error;
+        existingNames.add(venueName.toLowerCase().trim());
         imported++;
       } catch (error: any) {
         console.error(`Error importing venue ${venueName}:`, error.message);
@@ -120,6 +142,10 @@ export default function DataImport() {
     // Skip header rows (first 7 rows) and filter valid artist rows
     const dataRows = csvData.filter((row, idx) => idx >= 8 && row[1]?.trim());
 
+    // Fetch existing artists
+    const { data: existingArtists } = await supabase.from('artists').select('name');
+    const existingNames = new Set(existingArtists?.map(a => a.name.toLowerCase().trim()) || []);
+
     for (const row of dataRows) {
       const fullName = row[1]?.trim();
       const org = row[2]?.trim();
@@ -128,6 +154,11 @@ export default function DataImport() {
       const email = row[7]?.trim();
 
       if (!fullName) continue;
+
+      // Skip if artist already exists
+      if (existingNames.has(fullName.toLowerCase().trim())) {
+        continue;
+      }
 
       try {
         const { error } = await supabase
@@ -141,6 +172,7 @@ export default function DataImport() {
           });
 
         if (error) throw error;
+        existingNames.add(fullName.toLowerCase().trim());
         imported++;
       } catch (error: any) {
         console.error(`Error importing artist ${fullName}:`, error.message);
@@ -171,6 +203,10 @@ export default function DataImport() {
     const clientMap = new Map(clients?.map(c => [c.name.toLowerCase().trim(), c.id]) || []);
     const locationMap = new Map(locations?.map(l => [l.name.toLowerCase().trim(), l.id]) || []);
     const artistMap = new Map(artists?.map(a => [a.name.toLowerCase().trim(), a.id]) || []);
+
+    // Fetch existing booking job codes to avoid duplicates
+    const { data: existingBookings } = await supabase.from('bookings').select('job_code');
+    const existingJobCodes = new Set(existingBookings?.map(b => b.job_code).filter(Boolean) || []);
 
     console.log(`Found ${clientMap.size} clients, ${locationMap.size} locations, ${artistMap.size} artists`);
 
@@ -231,8 +267,16 @@ export default function DataImport() {
         const feeStr = row[6]?.trim()?.replace(/,/g, '');
         const artistFee = feeStr ? parseFloat(feeStr) : null;
 
+        // Handle duplicate job codes by skipping
+        let jobCode = row[0]?.trim() || null;
+        if (jobCode && existingJobCodes.has(jobCode)) {
+          skipped++;
+          console.warn(`Skipping booking - duplicate job code: ${jobCode}`);
+          continue;
+        }
+
         const bookingData: any = {
-          job_code: row[0]?.trim() || null,
+          job_code: jobCode,
           booking_date: bookingDate,
           status: 'confirmed',
           client_id: clientId,
@@ -249,6 +293,7 @@ export default function DataImport() {
           .insert(bookingData);
 
         if (error) throw error;
+        if (jobCode) existingJobCodes.add(jobCode);
         imported++;
       } catch (error: any) {
         skipped++;
