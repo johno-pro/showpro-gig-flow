@@ -28,6 +28,18 @@ import Suppliers from "./pages/Suppliers";
 import NewSupplier from "./pages/NewSupplier";
 import SupplierDetails from "./pages/SupplierDetails";
 import Departments from "./pages/Departments";
+import Teams from "./pages/Teams";
+import NewTeam from "./pages/NewTeam";
+import TeamDetails from "./pages/TeamDetails";
+import Payments from "./pages/Payments";
+import NewPayment from "./pages/NewPayment";
+import PaymentDetails from "./pages/PaymentDetails";
+import InvoiceBatches from "./pages/InvoiceBatches";
+import NewInvoiceBatch from "./pages/NewInvoiceBatch";
+import InvoiceBatchDetails from "./pages/InvoiceBatchDetails";
+import BookingSeries from "./pages/BookingSeries";
+import NewBookingSeries from "./pages/NewBookingSeries";
+import BookingSeriesDetails from "./pages/BookingSeriesDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
@@ -274,27 +286,121 @@ const App = () => (
               }
             />
             <Route
-              path="/payments"
+              path="/teams"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-bold mb-2">Payments</h2>
-                      <p className="text-muted-foreground">Payment tracking coming soon</p>
-                    </div>
+                    <Teams />
                   </Layout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/invoices"
+              path="/teams/new"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-bold mb-2">Invoices</h2>
-                      <p className="text-muted-foreground">Invoice management coming soon</p>
-                    </div>
+                    <NewTeam />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <TeamDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payments"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Payments />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payments/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewPayment />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payments/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <PaymentDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoice-batches"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InvoiceBatches />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoice-batches/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewInvoiceBatch />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoice-batches/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InvoiceBatchDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/booking-series"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BookingSeries />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/booking-series/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewBookingSeries />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/booking-series/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BookingSeriesDetails />
                   </Layout>
                 </ProtectedRoute>
               }
