@@ -25,7 +25,7 @@ export default function Bookings() {
           artists (name),
           clients (name),
           venues (name),
-          parks (name)
+          locations (name)
         `)
         .order("booking_date", { ascending: false });
 
@@ -90,7 +90,7 @@ export default function Bookings() {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {booking.clients?.name} • {booking.parks?.name || "No park"} • {booking.venues?.name || "No venue"}
+                      {booking.clients?.name} • {booking.locations?.name || "No location"} • {booking.venues?.name || "No venue"}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{new Date(booking.booking_date).toLocaleDateString()}</span>
