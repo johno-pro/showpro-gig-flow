@@ -12,10 +12,12 @@ export default function DataImport() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [bookingFile, setBookingFile] = useState<File | null>(null);
+  const [locationFile, setLocationFile] = useState<File | null>(null);
   const [results, setResults] = useState<{
     clients: number;
     venues: number;
     artists: number;
+    locations: number;
     bookings: number;
     bookingsSkipped: number;
     bookingsUpdated: number;
@@ -43,6 +45,62 @@ export default function DataImport() {
       values.push(current.trim());
       return values;
     });
+  };
+
+  const importLocations = async (csvData: string[][]): Promise<number> => {
+    const headers = csvData[0];
+    let imported = 0;
+
+    for (let i = 1; i < csvData.length; i++) {
+      const row = csvData[i];
+      if (!row[0]) continue;
+
+      const locationData: any = {
+        name: row[0],
+        address: row[1] || null,
+        postcode: row[2] || null,
+        phone: row[3] || null,
+        email: row[4] || null,
+        notes: row[5] || null,
+      };
+
+      // Find or create client if client name provided
+      if (row[6]) {
+        const { data: existingClient } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("name", row[6])
+          .maybeSingle();
+
+        if (existingClient) {
+          locationData.client_id = existingClient.id;
+        } else {
+          const { data: newClient } = await supabase
+            .from("clients")
+            .insert({ name: row[6] })
+            .select("id")
+            .single();
+          
+          if (newClient) {
+            locationData.client_id = newClient.id;
+          }
+        }
+      }
+
+      // Check if location exists
+      const { data: existing } = await supabase
+        .from("locations")
+        .select("id")
+        .eq("name", locationData.name)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error } = await supabase.from("locations").insert(locationData);
+        if (!error) imported++;
+      }
+    }
+
+    return imported;
   };
 
   const importClients = async (csvData: string[][]): Promise<Map<string, string>> => {
@@ -366,15 +424,26 @@ export default function DataImport() {
       const clientMap = await importClients(clientsData);
       const clientsCount = clientMap.size;
       
-      setProgress(40);
+      setProgress(30);
       toast.success(`Imported ${clientsCount} clients`);
+
+      // Import Locations (if file provided)
+      let locationsCount = 0;
+      if (locationFile) {
+        const locationText = await locationFile.text();
+        const locationsData = parseCSV(locationText);
+        locationsCount = await importLocations(locationsData);
+        toast.success(`Imported ${locationsCount} locations`);
+      }
+      
+      setProgress(50);
 
       // Import Venues
       const venuesCSV = await fetch('/VENUES.csv').then(r => r.text());
       const venuesData = parseCSV(venuesCSV);
       const venuesCount = await importVenues(venuesData, clientMap);
       
-      setProgress(70);
+      setProgress(65);
       toast.success(`Imported ${venuesCount} venues`);
 
       // Import Artists
@@ -382,7 +451,7 @@ export default function DataImport() {
       const artistsData = parseCSV(artistsCSV);
       const artistsCount = await importArtists(artistsData);
       
-      setProgress(85);
+      setProgress(80);
       toast.success(`Imported ${artistsCount} artists`);
 
       // Import Bookings (if file provided)
@@ -434,6 +503,7 @@ export default function DataImport() {
         clients: clientsCount,
         venues: venuesCount,
         artists: artistsCount,
+        locations: locationsCount,
         bookings: bookingsCount,
         bookingsSkipped: bookingsSkipped,
         bookingsUpdated: bookingsUpdated,
@@ -473,7 +543,21 @@ export default function DataImport() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="booking-csv">Upload Bookings CSV</Label>
+            <Label htmlFor="location-csv">Upload Locations CSV (Optional)</Label>
+            <Input
+              id="location-csv"
+              type="file"
+              accept=".csv"
+              onChange={(e) => setLocationFile(e.target.files?.[0] || null)}
+              disabled={importing}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: Name, Address, Postcode, Phone, Email, Notes, Client Name
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="booking-csv">Upload Bookings CSV (Optional)</Label>
             <Input
               id="booking-csv"
               type="file"
@@ -506,6 +590,7 @@ export default function DataImport() {
                 <p>✓ {results.clients} clients imported</p>
                 <p>✓ {results.venues} venues imported</p>
                 <p>✓ {results.artists} artists imported</p>
+                <p>✓ {results.locations} locations imported</p>
                 <p>
                   ✓ {results.bookings} bookings imported
                   {results.bookingsUpdated > 0 && (
