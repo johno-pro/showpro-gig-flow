@@ -182,7 +182,7 @@ export default function DataImport() {
     return imported;
   };
 
-  const importBookings = async (csvData: string[][]): Promise<number> => {
+  const importBookings = async (csvData: string[][]): Promise<{ imported: number; skipped: number }> => {
     let imported = 0;
     let skipped = 0;
     const missingClients = new Set<string>();
@@ -305,7 +305,7 @@ export default function DataImport() {
       console.warn(`Skipped ${skipped} bookings. Missing clients: ${Array.from(missingClients).join(', ')}`);
     }
 
-    return imported;
+    return { imported, skipped };
   };
 
   const handleImport = async () => {
@@ -345,18 +345,31 @@ export default function DataImport() {
 
       // Import Bookings (if file provided)
       let bookingsCount = 0;
+      let bookingsSkipped = 0;
       if (bookingFile) {
         const bookingText = await bookingFile.text();
         const bookingsData = parseCSV(bookingText);
-        bookingsCount = await importBookings(bookingsData);
-        toast.success(`Imported ${bookingsCount} bookings`);
+        const result = await importBookings(bookingsData);
+        bookingsCount = result.imported;
+        bookingsSkipped = result.skipped;
+        if (bookingsSkipped > 0) {
+          toast.warning(`Imported ${bookingsCount} bookings, skipped ${bookingsSkipped} duplicates`);
+        } else {
+          toast.success(`Imported ${bookingsCount} bookings`);
+        }
       } else {
         // Try to fetch from public folder
         try {
           const bookingsCSV = await fetch('/BOOKINGS.csv').then(r => r.text());
           const bookingsData = parseCSV(bookingsCSV);
-          bookingsCount = await importBookings(bookingsData);
-          toast.success(`Imported ${bookingsCount} bookings`);
+          const result = await importBookings(bookingsData);
+          bookingsCount = result.imported;
+          bookingsSkipped = result.skipped;
+          if (bookingsSkipped > 0) {
+            toast.warning(`Imported ${bookingsCount} bookings, skipped ${bookingsSkipped} duplicates`);
+          } else {
+            toast.success(`Imported ${bookingsCount} bookings`);
+          }
         } catch (e) {
           console.log('No bookings CSV file found in public folder');
         }
