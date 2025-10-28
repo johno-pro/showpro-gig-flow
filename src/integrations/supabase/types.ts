@@ -187,6 +187,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists_for_bookings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -658,17 +665,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      artists_for_bookings: {
+        Row: {
+          act_type: string | null
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          act_type?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          act_type?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      get_artists_for_bookings: {
-        Args: never
-        Returns: {
-          act_type: string
-          id: string
-          name: string
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
