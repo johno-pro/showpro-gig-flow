@@ -40,10 +40,7 @@ export default function VenueDetails() {
       const [venueRes, bookingsRes] = await Promise.all([
         supabase
           .from("venues")
-          .select(`
-            *,
-            parks (id, name)
-          `)
+          .select("*")
           .eq("id", id)
           .maybeSingle(),
         supabase
@@ -66,7 +63,18 @@ export default function VenueDetails() {
         return;
       }
 
-      setVenue(venueRes.data);
+      // Fetch location separately if venue has location_id
+      let locationData = null;
+      if (venueRes.data.location_id) {
+        const { data } = await supabase
+          .from("locations")
+          .select("id, name")
+          .eq("id", venueRes.data.location_id)
+          .maybeSingle();
+        locationData = data;
+      }
+
+      setVenue({ ...venueRes.data, location: locationData });
       setBookings(bookingsRes.data || []);
     } catch (error: any) {
       toast.error("Failed to fetch venue details");
@@ -189,10 +197,10 @@ export default function VenueDetails() {
 
             <Separator />
 
-            {venue.parks && (
+            {venue.location && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Park</p>
-                <p className="mt-1">{venue.parks.name}</p>
+                <p className="text-sm font-medium text-muted-foreground">Location</p>
+                <p className="mt-1">{venue.location.name}</p>
               </div>
             )}
 
