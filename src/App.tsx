@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Bookings from "./pages/Bookings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import DataImport from "./pages/DataImport";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,16 @@ const App = () => (
                       <h2 className="text-2xl font-bold mb-2">Invoices</h2>
                       <p className="text-muted-foreground">Invoice management coming soon</p>
                     </div>
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/import"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DataImport />
                   </Layout>
                 </ProtectedRoute>
               }
