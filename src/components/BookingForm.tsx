@@ -30,7 +30,7 @@ const bookingFormSchema = z.object({
   end_time: z.string().optional(),
   status: z.enum(["enquiry", "pencil", "confirmed", "cancelled"]),
   client_id: z.string().min(1, "Client is required"),
-  park_id: z.string().optional(),
+  location_id: z.string().optional(),
   venue_id: z.string().optional(),
   artist_id: z.string().optional(),
   fee_model: z.enum(["commission", "buy_sell"]),
@@ -57,7 +57,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
   const [loading, setLoading] = useState(false);
   const [artists, setArtists] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
-  const [parks, setParks] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
 
@@ -82,7 +82,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
 
   useEffect(() => {
     if (selectedClient) {
-      fetchParks(selectedClient);
+      fetchLocations(selectedClient);
     }
   }, [selectedClient]);
 
@@ -104,27 +104,27 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
     }
   };
 
-  const fetchParks = async (clientId: string) => {
+  const fetchLocations = async (clientId: string) => {
     try {
       const { data, error } = await supabase
-        .from("parks")
+        .from("locations")
         .select("id, name")
         .eq("client_id", clientId)
         .order("name");
 
       if (error) throw error;
-      setParks(data || []);
+      setLocations(data || []);
     } catch (error) {
       console.error(error);
     }
   };
 
-  const fetchVenues = async (parkId: string) => {
+  const fetchVenues = async (locationId: string) => {
     try {
       const { data, error } = await supabase
         .from("venues")
         .select("id, name")
-        .eq("park_id", parkId)
+        .eq("location_id", locationId)
         .order("name");
 
       if (error) throw error;
@@ -153,7 +153,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
           end_time: data.end_time || "",
           status: data.status,
           client_id: data.client_id,
-          park_id: data.park_id || "",
+          location_id: data.location_id || "",
           venue_id: data.venue_id || "",
           artist_id: data.artist_id || "",
           fee_model: data.fee_model,
@@ -169,8 +169,8 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         });
 
         setSelectedClient(data.client_id);
-        if (data.park_id) {
-          fetchVenues(data.park_id);
+        if (data.location_id) {
+          fetchVenues(data.location_id);
         }
       }
     } catch (error) {
@@ -188,7 +188,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         end_time: values.end_time || null,
         status: values.status,
         client_id: values.client_id,
-        park_id: values.park_id || null,
+        location_id: values.location_id || null,
         venue_id: values.venue_id || null,
         artist_id: values.artist_id || null,
         fee_model: values.fee_model,
@@ -307,7 +307,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
                   onValueChange={(value) => {
                     field.onChange(value);
                     setSelectedClient(value);
-                    form.setValue("park_id", "");
+                    form.setValue("location_id", "");
                     form.setValue("venue_id", "");
                     setVenues([]);
                   }}
@@ -333,10 +333,10 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
 
           <FormField
             control={form.control}
-            name="park_id"
+            name="location_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Park</FormLabel>
+                <FormLabel>Location</FormLabel>
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
@@ -348,13 +348,13 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select park" />
+                      <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {parks.map((park) => (
-                      <SelectItem key={park.id} value={park.id}>
-                        {park.name}
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -373,7 +373,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
-                  disabled={!form.watch("park_id")}
+                  disabled={!form.watch("location_id")}
                 >
                   <FormControl>
                     <SelectTrigger>

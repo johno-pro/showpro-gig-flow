@@ -40,7 +40,7 @@ interface VenueFormProps {
 
 export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
   const [loading, setLoading] = useState(false);
-  const [parks, setParks] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
 
   const form = useForm<VenueFormValues>({
     resolver: zodResolver(venueFormSchema),
@@ -53,23 +53,23 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
   });
 
   useEffect(() => {
-    fetchParks();
+    fetchLocations();
     if (venueId) {
       fetchVenue();
     }
   }, [venueId]);
 
-  const fetchParks = async () => {
+  const fetchLocations = async () => {
     try {
       const { data, error } = await supabase
-        .from("parks")
+        .from("locations")
         .select("id, name")
         .order("name");
 
       if (error) throw error;
-      setParks(data || []);
+      setLocations(data || []);
     } catch (error) {
-      toast.error("Failed to load parks");
+      toast.error("Failed to load locations");
       console.error(error);
     }
   };
@@ -89,7 +89,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
       if (data) {
         form.reset({
           name: data.name,
-          park_id: data.park_id || "",
+          park_id: data.location_id || "",
           capacity: data.capacity?.toString() || "",
           notes: data.notes || "",
         });
@@ -156,24 +156,24 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
             control={form.control}
             name="park_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Park *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select park" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {parks.map((park) => (
-                      <SelectItem key={park.id} value={park.id}>
-                        {park.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+            <FormItem>
+              <FormLabel>Location *</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
             )}
           />
 

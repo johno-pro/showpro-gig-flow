@@ -18,10 +18,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function ParkDetails() {
+export default function LocationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [park, setPark] = useState<any>(null);
+  const [location, setLocation] = useState<any>(null);
   const [venues, setVenues] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,16 +29,16 @@ export default function ParkDetails() {
 
   useEffect(() => {
     if (id) {
-      fetchParkDetails();
+      fetchLocationDetails();
       fetchVenues();
       fetchBookings();
     }
   }, [id]);
 
-  const fetchParkDetails = async () => {
+  const fetchLocationDetails = async () => {
     try {
       const { data, error } = await supabase
-        .from("parks")
+        .from("locations")
         .select(`
           *,
           clients:clients(id, name)
@@ -47,9 +47,9 @@ export default function ParkDetails() {
         .maybeSingle();
 
       if (error) throw error;
-      setPark(data);
+      setLocation(data);
     } catch (error: any) {
-      toast.error("Failed to fetch park details");
+      toast.error("Failed to fetch location details");
       console.error("Error:", error);
     } finally {
       setLoading(false);
@@ -61,7 +61,7 @@ export default function ParkDetails() {
       const { data, error } = await supabase
         .from("venues")
         .select("*")
-        .eq("park_id", id)
+        .eq("location_id", id)
         .order("name");
 
       if (error) throw error;
@@ -82,7 +82,7 @@ export default function ParkDetails() {
           artists:artists(name),
           venues:venues(name)
         `)
-        .eq("park_id", id)
+        .eq("location_id", id)
         .order("booking_date", { ascending: false })
         .limit(10);
 
@@ -95,41 +95,41 @@ export default function ParkDetails() {
 
   const handleDelete = async () => {
     try {
-      const { error } = await supabase.from("parks").delete().eq("id", id);
+      const { error } = await supabase.from("locations").delete().eq("id", id);
 
       if (error) throw error;
-      toast.success("Park deleted successfully");
-      navigate("/parks");
+      toast.success("Location deleted successfully");
+      navigate("/locations");
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete park");
+      toast.error(error.message || "Failed to delete location");
       console.error("Error:", error);
     }
   };
 
   if (loading) {
-    return <div className="text-center">Loading park details...</div>;
+    return <div className="text-center">Loading location details...</div>;
   }
 
-  if (!park) {
-    return <div className="text-center">Park not found</div>;
+  if (!location) {
+    return <div className="text-center">Location not found</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/parks")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/locations")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{park.name}</h1>
+            <h1 className="text-3xl font-bold">{location.name}</h1>
             <p className="text-muted-foreground">
-              {park.clients?.name || "No client assigned"}
+              {location.clients?.name || "No client assigned"}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/parks/${id}/edit`)}>
+          <Button variant="outline" onClick={() => navigate(`/locations/${id}/edit`)}>
             <Edit className="h-4 w-4" />
             Edit
           </Button>
@@ -143,46 +143,46 @@ export default function ParkDetails() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Park Information</CardTitle>
+            <CardTitle>Location Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {park.address && (
+            {location.address && (
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Address</p>
-                  <p className="text-sm text-muted-foreground">{park.address}</p>
-                  {park.postcode && (
-                    <p className="text-sm text-muted-foreground">{park.postcode}</p>
+                  <p className="text-sm text-muted-foreground">{location.address}</p>
+                  {location.postcode && (
+                    <p className="text-sm text-muted-foreground">{location.postcode}</p>
                   )}
                 </div>
               </div>
             )}
 
-            {park.phone && (
+            {location.phone && (
               <div className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Phone</p>
-                  <p className="text-sm text-muted-foreground">{park.phone}</p>
+                  <p className="text-sm text-muted-foreground">{location.phone}</p>
                 </div>
               </div>
             )}
 
-            {park.email && (
+            {location.email && (
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">{park.email}</p>
+                  <p className="text-sm text-muted-foreground">{location.email}</p>
                 </div>
               </div>
             )}
 
-            {park.notes && (
+            {location.notes && (
               <div>
                 <p className="text-sm font-medium mb-2">Notes</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{park.notes}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{location.notes}</p>
               </div>
             )}
           </CardContent>
@@ -286,7 +286,7 @@ export default function ParkDetails() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this park. This action cannot be undone.
+              This will permanently delete this location. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

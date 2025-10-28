@@ -7,38 +7,38 @@ import { Input } from "@/components/ui/input";
 import { Plus, MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 
-export default function Parks() {
+export default function Locations() {
   const navigate = useNavigate();
-  const [parks, setParks] = useState<any[]>([]);
-  const [filteredParks, setFilteredParks] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [filteredLocations, setFilteredLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchParks();
+    fetchLocations();
   }, []);
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
-      setFilteredParks(parks);
+      setFilteredLocations(locations);
     } else {
       const query = searchQuery.toLowerCase();
-      setFilteredParks(
-        parks.filter(
-          (park) =>
-            park.name.toLowerCase().includes(query) ||
-            park.address?.toLowerCase().includes(query) ||
-            park.postcode?.toLowerCase().includes(query) ||
-            park.clients?.name?.toLowerCase().includes(query)
+      setFilteredLocations(
+        locations.filter(
+          (location) =>
+            location.name.toLowerCase().includes(query) ||
+            location.address?.toLowerCase().includes(query) ||
+            location.postcode?.toLowerCase().includes(query) ||
+            location.clients?.name?.toLowerCase().includes(query)
         )
       );
     }
-  }, [searchQuery, parks]);
+  }, [searchQuery, locations]);
 
-  const fetchParks = async () => {
+  const fetchLocations = async () => {
     try {
       const { data, error } = await supabase
-        .from("parks")
+        .from("locations")
         .select(`
           *,
           clients:clients(name),
@@ -47,10 +47,10 @@ export default function Parks() {
         .order("name");
 
       if (error) throw error;
-      setParks(data || []);
-      setFilteredParks(data || []);
+      setLocations(data || []);
+      setFilteredLocations(data || []);
     } catch (error: any) {
-      toast.error("Failed to fetch parks");
+      toast.error("Failed to fetch locations");
       console.error("Error:", error);
     } finally {
       setLoading(false);
@@ -58,30 +58,30 @@ export default function Parks() {
   };
 
   if (loading) {
-    return <div className="text-center">Loading parks...</div>;
+    return <div className="text-center">Loading locations...</div>;
   }
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Parks</h1>
-          <p className="text-muted-foreground">Manage holiday parks and venues</p>
+          <h1 className="text-3xl font-bold">Locations</h1>
+          <p className="text-muted-foreground">Manage holiday locations and venues</p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/parks/new")}>
+        <Button className="gap-2" onClick={() => navigate("/locations/new")}>
           <Plus className="h-4 w-4" />
-          New Park
+          New Location
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>All Parks ({filteredParks.length})</CardTitle>
+            <CardTitle>All Locations ({filteredLocations.length})</CardTitle>
             <div className="relative w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search parks..."
+                placeholder="Search locations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -90,51 +90,51 @@ export default function Parks() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredParks.length === 0 ? (
+          {filteredLocations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MapPin className="mb-4 h-12 w-12 text-muted-foreground" />
               <h3 className="mb-2 text-lg font-semibold">
-                {searchQuery ? "No parks found" : "No parks yet"}
+                {searchQuery ? "No locations found" : "No locations yet"}
               </h3>
               <p className="mb-4 text-muted-foreground">
                 {searchQuery
                   ? "Try adjusting your search query"
-                  : "Get started by adding your first park"}
+                  : "Get started by adding your first location"}
               </p>
               {!searchQuery && (
-                <Button onClick={() => navigate("/parks/new")}>
+                <Button onClick={() => navigate("/locations/new")}>
                   <Plus className="h-4 w-4" />
-                  Add Park
+                  Add Location
                 </Button>
               )}
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredParks.map((park) => (
+              {filteredLocations.map((location) => (
                 <div
-                  key={park.id}
+                  key={location.id}
                   className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50"
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-3">
-                      <p className="font-medium">{park.name}</p>
-                      {park.clients && (
+                      <p className="font-medium">{location.name}</p>
+                      {location.clients && (
                         <span className="text-sm text-muted-foreground">
-                          ({park.clients.name})
+                          ({location.clients.name})
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {park.address || "No address"} {park.postcode && `• ${park.postcode}`}
+                      {location.address || "No address"} {location.postcode && `• ${location.postcode}`}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{park.venues?.[0]?.count || 0} venues</span>
+                      <span>{location.venues?.[0]?.count || 0} venues</span>
                     </div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/parks/${park.id}`)}
+                    onClick={() => navigate(`/locations/${location.id}`)}
                   >
                     View Details
                   </Button>

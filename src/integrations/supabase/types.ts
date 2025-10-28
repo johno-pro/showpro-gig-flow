@@ -120,8 +120,8 @@ export type Database = {
           fee_model: Database["public"]["Enums"]["fee_model"] | null
           id: string
           invoiced: boolean | null
+          location_id: string | null
           notes: string | null
-          park_id: string | null
           series_id: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["booking_status"] | null
@@ -147,8 +147,8 @@ export type Database = {
           fee_model?: Database["public"]["Enums"]["fee_model"] | null
           id?: string
           invoiced?: boolean | null
+          location_id?: string | null
           notes?: string | null
-          park_id?: string | null
           series_id?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
@@ -174,8 +174,8 @@ export type Database = {
           fee_model?: Database["public"]["Enums"]["fee_model"] | null
           id?: string
           invoiced?: boolean | null
+          location_id?: string | null
           notes?: string | null
-          park_id?: string | null
           series_id?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
@@ -223,16 +223,16 @@ export type Database = {
           },
           {
             foreignKeyName: "bookings_park_id_fkey"
-            columns: ["park_id"]
+            columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "parks"
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "bookings_park_id_fkey"
-            columns: ["park_id"]
+            columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "parks_basic"
+            referencedRelation: "locations_basic"
             referencedColumns: ["id"]
           },
           {
@@ -309,10 +309,10 @@ export type Database = {
           department_id: string | null
           email: string | null
           id: string
+          location_id: string | null
           mobile: string | null
           name: string
           notes: string | null
-          park_id: string | null
           phone: string | null
           supplier_id: string | null
           title: string | null
@@ -324,10 +324,10 @@ export type Database = {
           department_id?: string | null
           email?: string | null
           id?: string
+          location_id?: string | null
           mobile?: string | null
           name: string
           notes?: string | null
-          park_id?: string | null
           phone?: string | null
           supplier_id?: string | null
           title?: string | null
@@ -339,10 +339,10 @@ export type Database = {
           department_id?: string | null
           email?: string | null
           id?: string
+          location_id?: string | null
           mobile?: string | null
           name?: string
           notes?: string | null
-          park_id?: string | null
           phone?: string | null
           supplier_id?: string | null
           title?: string | null
@@ -365,16 +365,16 @@ export type Database = {
           },
           {
             foreignKeyName: "contacts_park_id_fkey"
-            columns: ["park_id"]
+            columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "parks"
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contacts_park_id_fkey"
-            columns: ["park_id"]
+            columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "parks_basic"
+            referencedRelation: "locations_basic"
             referencedColumns: ["id"]
           },
           {
@@ -466,7 +466,7 @@ export type Database = {
           },
         ]
       }
-      parks: {
+      locations: {
         Row: {
           address: string | null
           client_id: string | null
@@ -672,27 +672,27 @@ export type Database = {
           capacity: number | null
           created_at: string | null
           id: string
+          location_id: string | null
           name: string
           notes: string | null
-          park_id: string | null
           updated_at: string | null
         }
         Insert: {
           capacity?: number | null
           created_at?: string | null
           id?: string
+          location_id?: string | null
           name: string
           notes?: string | null
-          park_id?: string | null
           updated_at?: string | null
         }
         Update: {
           capacity?: number | null
           created_at?: string | null
           id?: string
+          location_id?: string | null
           name?: string
           notes?: string | null
-          park_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -770,14 +770,14 @@ export type Database = {
             foreignKeyName: "contacts_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
-            referencedRelation: "parks"
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contacts_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
-            referencedRelation: "parks_basic"
+            referencedRelation: "locations_basic"
             referencedColumns: ["id"]
           },
           {
@@ -796,7 +796,7 @@ export type Database = {
           },
         ]
       }
-      parks_basic: {
+      locations_basic: {
         Row: {
           address: string | null
           client_id: string | null

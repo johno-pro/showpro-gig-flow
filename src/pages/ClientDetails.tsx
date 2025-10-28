@@ -38,21 +38,21 @@ export default function ClientDetails() {
 
   const fetchClientData = async () => {
     try {
-      const [clientRes, parksRes, venuesRes] = await Promise.all([
+      const [clientRes, locationsRes, venuesRes] = await Promise.all([
         supabase.from("clients").select("*").eq("id", id).maybeSingle(),
-        supabase.from("parks").select("*").eq("client_id", id).order("name"),
+        supabase.from("locations").select("*").eq("client_id", id).order("name"),
         supabase
           .from("venues")
           .select(`
             *,
-            parks (name)
+            locations (name)
           `)
-          .eq("park_id", id)
+          .eq("location_id", id)
           .order("name"),
       ]);
 
       if (clientRes.error) throw clientRes.error;
-      if (parksRes.error) throw parksRes.error;
+      if (locationsRes.error) throw locationsRes.error;
       if (venuesRes.error) throw venuesRes.error;
 
       if (!clientRes.data) {
@@ -62,7 +62,7 @@ export default function ClientDetails() {
       }
 
       setClient(clientRes.data);
-      setParks(parksRes.data || []);
+      setParks(locationsRes.data || []);
       setVenues(venuesRes.data || []);
     } catch (error: any) {
       toast.error("Failed to fetch client details");

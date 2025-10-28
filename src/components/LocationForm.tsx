@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const parkFormSchema = z.object({
+const locationFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   client_id: z.string().min(1, "Client is required"),
   address: z.string().optional(),
@@ -33,20 +33,20 @@ const parkFormSchema = z.object({
   notes: z.string().optional(),
 });
 
-type ParkFormValues = z.infer<typeof parkFormSchema>;
+type LocationFormValues = z.infer<typeof locationFormSchema>;
 
-interface ParkFormProps {
-  parkId?: string;
+interface LocationFormProps {
+  locationId?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
+export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormProps) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
 
-  const form = useForm<ParkFormValues>({
-    resolver: zodResolver(parkFormSchema),
+  const form = useForm<LocationFormValues>({
+    resolver: zodResolver(locationFormSchema),
     defaultValues: {
       name: "",
       client_id: "",
@@ -60,10 +60,10 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
 
   useEffect(() => {
     fetchClients();
-    if (parkId) {
-      fetchPark();
+    if (locationId) {
+      fetchLocation();
     }
-  }, [parkId]);
+  }, [locationId]);
 
   const fetchClients = async () => {
     try {
@@ -80,14 +80,14 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
     }
   };
 
-  const fetchPark = async () => {
-    if (!parkId) return;
+  const fetchLocation = async () => {
+    if (!locationId) return;
 
     try {
       const { data, error } = await supabase
-        .from("parks")
+        .from("locations")
         .select("*")
-        .eq("id", parkId)
+        .eq("id", locationId)
         .maybeSingle();
 
       if (error) throw error;
@@ -104,15 +104,15 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
         });
       }
     } catch (error) {
-      toast.error("Failed to load park");
+      toast.error("Failed to load location");
       console.error(error);
     }
   };
 
-  const onSubmit = async (values: ParkFormValues) => {
+  const onSubmit = async (values: LocationFormValues) => {
     setLoading(true);
     try {
-      const parkData = {
+      const locationData = {
         name: values.name,
         client_id: values.client_id,
         address: values.address || null,
@@ -122,24 +122,24 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
         notes: values.notes || null,
       };
 
-      if (parkId) {
+      if (locationId) {
         const { error } = await supabase
-          .from("parks")
-          .update(parkData)
-          .eq("id", parkId);
+          .from("locations")
+          .update(locationData)
+          .eq("id", locationId);
 
         if (error) throw error;
-        toast.success("Park updated successfully");
+        toast.success("Location updated successfully");
       } else {
-        const { error } = await supabase.from("parks").insert([parkData]);
+        const { error} = await supabase.from("locations").insert([locationData]);
 
         if (error) throw error;
-        toast.success("Park created successfully");
+        toast.success("Location created successfully");
       }
 
       onSuccess?.();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save park");
+      toast.error(error.message || "Failed to save location");
       console.error(error);
     } finally {
       setLoading(false);
@@ -157,7 +157,7 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
               <FormItem>
                 <FormLabel>Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Park name" {...field} />
+                  <Input placeholder="Location name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -206,7 +206,7 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
           <FormField
             control={form.control}
             name="phone"
-            render={({ field }) => (
+            render={({ field}) => (
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
@@ -266,7 +266,7 @@ export function ParkForm({ parkId, onSuccess, onCancel }: ParkFormProps) {
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : parkId ? "Update Park" : "Create Park"}
+            {loading ? "Saving..." : locationId ? "Update Location" : "Create Location"}
           </Button>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
