@@ -12,6 +12,12 @@ import BookingDetails from "./pages/BookingDetails";
 import Artists from "./pages/Artists";
 import NewArtist from "./pages/NewArtist";
 import ArtistDetails from "./pages/ArtistDetails";
+import Clients from "./pages/Clients";
+import NewClient from "./pages/NewClient";
+import ClientDetails from "./pages/ClientDetails";
+import Venues from "./pages/Venues";
+import NewVenue from "./pages/NewVenue";
+import VenueDetails from "./pages/VenueDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
@@ -102,10 +108,27 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-bold mb-2">Venues</h2>
-                      <p className="text-muted-foreground">Venue management coming soon</p>
-                    </div>
+                    <Venues />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/venues/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewVenue />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/venues/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <VenueDetails />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -115,10 +138,27 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-bold mb-2">Clients</h2>
-                      <p className="text-muted-foreground">Client management coming soon</p>
-                    </div>
+                    <Clients />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clients/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewClient />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clients/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ClientDetails />
                   </Layout>
                 </ProtectedRoute>
               }
