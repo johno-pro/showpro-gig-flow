@@ -43,6 +43,7 @@ import BookingSeriesDetails from "./pages/BookingSeriesDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
+import FixArtistLinks from "./pages/FixArtistLinks";
 
 const queryClient = new QueryClient();
 
@@ -411,6 +412,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <DataImport />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fix-artist-links"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FixArtistLinks />
                   </Layout>
                 </ProtectedRoute>
               }

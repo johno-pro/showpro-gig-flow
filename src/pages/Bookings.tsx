@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, WrenchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Bookings() {
@@ -54,10 +54,16 @@ export default function Bookings() {
           <h1 className="text-3xl font-bold">Bookings</h1>
           <p className="text-muted-foreground">Manage all your entertainment bookings</p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/bookings/new")}>
-          <Plus className="h-4 w-4" />
-          New Booking
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/fix-artist-links")}>
+            <WrenchIcon className="h-4 w-4" />
+            Fix Artist Links
+          </Button>
+          <Button className="gap-2" onClick={() => navigate("/bookings/new")}>
+            <Plus className="h-4 w-4" />
+            New Booking
+          </Button>
+        </div>
       </div>
 
       <Card>
