@@ -152,6 +152,8 @@ export default function DataImport() {
 
   const importBookings = async (csvData: string[][]): Promise<number> => {
     let imported = 0;
+    let skipped = 0;
+    const missingClients = new Set<string>();
     
     // Skip header row and filter valid rows (exclude totals and empty rows)
     const dataRows = csvData.filter((row, idx) => 
@@ -166,9 +168,11 @@ export default function DataImport() {
     const { data: locations } = await supabase.from('locations').select('id, name');
     const { data: artists } = await supabase.from('artists').select('id, name');
 
-    const clientMap = new Map(clients?.map(c => [c.name.toLowerCase(), c.id]) || []);
-    const locationMap = new Map(locations?.map(l => [l.name.toLowerCase(), l.id]) || []);
-    const artistMap = new Map(artists?.map(a => [a.name.toLowerCase(), a.id]) || []);
+    const clientMap = new Map(clients?.map(c => [c.name.toLowerCase().trim(), c.id]) || []);
+    const locationMap = new Map(locations?.map(l => [l.name.toLowerCase().trim(), l.id]) || []);
+    const artistMap = new Map(artists?.map(a => [a.name.toLowerCase().trim(), a.id]) || []);
+
+    console.log(`Found ${clientMap.size} clients, ${locationMap.size} locations, ${artistMap.size} artists`);
 
     for (const row of dataRows) {
       try {
@@ -186,13 +190,42 @@ export default function DataImport() {
         }
 
         // Look up IDs by name
-        const clientName = row[2]?.trim().toLowerCase();
-        const locationName = row[3]?.trim().toLowerCase();
+        const clientName = row[2]?.trim();
+        const locationName = row[3]?.trim();
         const artistName = row[4]?.trim();
         
-        const clientId = clientMap.get(clientName) || null;
-        const locationId = locationMap.get(locationName) || null;
-        const artistId = artistName && artistName !== '?' ? artistMap.get(artistName.toLowerCase()) || null : null;
+        // Find client ID - create if doesn't exist
+        let clientId = clientName ? clientMap.get(clientName.toLowerCase().trim()) : null;
+        
+        // If client not found, try to create it
+        if (!clientId && clientName) {
+          try {
+            const { data: newClient, error: clientError } = await supabase
+              .from('clients')
+              .insert({ name: clientName })
+              .select('id')
+              .single();
+            
+            if (!clientError && newClient) {
+              clientId = newClient.id;
+              clientMap.set(clientName.toLowerCase().trim(), newClient.id);
+              console.log(`Created new client: ${clientName}`);
+            }
+          } catch (e) {
+            console.log(`Could not create client: ${clientName}`);
+          }
+        }
+        
+        // Skip if still no client (client_id is required)
+        if (!clientId) {
+          missingClients.add(clientName || 'Unknown');
+          skipped++;
+          console.warn(`Skipping booking - missing client: ${clientName}`);
+          continue;
+        }
+        
+        const locationId = locationName ? locationMap.get(locationName.toLowerCase().trim()) || null : null;
+        const artistId = artistName && artistName !== '?' ? artistMap.get(artistName.toLowerCase().trim()) || null : null;
 
         // Parse fee amount (remove commas)
         const feeStr = row[6]?.trim()?.replace(/,/g, '');
@@ -207,8 +240,8 @@ export default function DataImport() {
           artist_id: artistId,
           fee_model: 'commission',
           artist_fee: artistFee,
-          client_fee: 0, // Set to 0 as requested
-          notes: row[5]?.trim() || null, // Job description
+          client_fee: 0,
+          notes: row[5]?.trim() || null,
         };
 
         const { error } = await supabase
@@ -218,8 +251,13 @@ export default function DataImport() {
         if (error) throw error;
         imported++;
       } catch (error: any) {
+        skipped++;
         console.error(`Error importing booking:`, error.message);
       }
+    }
+
+    if (skipped > 0) {
+      console.warn(`Skipped ${skipped} bookings. Missing clients: ${Array.from(missingClients).join(', ')}`);
     }
 
     return imported;
