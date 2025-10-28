@@ -48,55 +48,82 @@ export default function DataImport() {
   };
 
   const importLocations = async (csvData: string[][]): Promise<number> => {
-    const headers = csvData[0];
     let imported = 0;
 
-    for (let i = 1; i < csvData.length; i++) {
-      const row = csvData[i];
-      if (!row[0]) continue;
+    // Skip header row and filter valid rows
+    const dataRows = csvData.filter((row, idx) => idx > 0 && row[0]?.trim());
 
-      const locationData: any = {
-        name: row[0],
-        address: row[1] || null,
-        postcode: row[2] || null,
-        phone: row[3] || null,
-        email: row[4] || null,
-        notes: row[5] || null,
-      };
+    for (const row of dataRows) {
+      const locationName = row[0]?.trim();
+      const venueName = row[1]?.trim();
+      const address = row[2]?.trim();
+      const mapLinkUrl = row[3]?.trim();
 
-      // Find or create client if client name provided
-      if (row[6]) {
-        const { data: existingClient } = await supabase
-          .from("clients")
+      if (!locationName) continue;
+
+      try {
+        // Check if location exists
+        const { data: existingLocation } = await supabase
+          .from("locations")
           .select("id")
-          .eq("name", row[6])
+          .eq("name", locationName)
           .maybeSingle();
 
-        if (existingClient) {
-          locationData.client_id = existingClient.id;
-        } else {
-          const { data: newClient } = await supabase
-            .from("clients")
-            .insert({ name: row[6] })
+        let locationId = existingLocation?.id;
+
+        if (!existingLocation) {
+          // Create new location
+          const { data: newLocation, error: locationError } = await supabase
+            .from("locations")
+            .insert({
+              name: locationName,
+              address: address || null,
+              map_link_url: mapLinkUrl || null,
+            })
             .select("id")
             .single();
-          
-          if (newClient) {
-            locationData.client_id = newClient.id;
+
+          if (locationError) throw locationError;
+          locationId = newLocation.id;
+          imported++;
+        } else {
+          // Update existing location with new data if provided
+          const { error: updateError } = await supabase
+            .from("locations")
+            .update({
+              address: address || null,
+              map_link_url: mapLinkUrl || null,
+            })
+            .eq("id", existingLocation.id);
+
+          if (updateError) throw updateError;
+        }
+
+        // Create or link venue if venue name provided
+        if (venueName && locationId) {
+          const { data: existingVenue } = await supabase
+            .from("venues")
+            .select("id")
+            .eq("name", venueName)
+            .maybeSingle();
+
+          if (!existingVenue) {
+            await supabase
+              .from("venues")
+              .insert({
+                name: venueName,
+                location_id: locationId,
+              });
+          } else {
+            // Update venue's location if it exists
+            await supabase
+              .from("venues")
+              .update({ location_id: locationId })
+              .eq("id", existingVenue.id);
           }
         }
-      }
-
-      // Check if location exists
-      const { data: existing } = await supabase
-        .from("locations")
-        .select("id")
-        .eq("name", locationData.name)
-        .maybeSingle();
-
-      if (!existing) {
-        const { error } = await supabase.from("locations").insert(locationData);
-        if (!error) imported++;
+      } catch (error: any) {
+        console.error(`Error importing location ${locationName}:`, error.message);
       }
     }
 
@@ -552,7 +579,7 @@ export default function DataImport() {
               disabled={importing}
             />
             <p className="text-xs text-muted-foreground">
-              Expected columns: Name, Address, Postcode, Phone, Email, Notes, Client Name
+              Expected columns: Location, Venue, Address, Map Link URL, Contact Name & Number
             </p>
           </div>
 
