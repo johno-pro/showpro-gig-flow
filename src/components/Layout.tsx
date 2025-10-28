@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard } from "lucide-react";
+import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -13,6 +13,7 @@ const navigation = [
   { name: "Clients", href: "/clients", icon: Briefcase },
   { name: "Payments", href: "/payments", icon: DollarSign },
   { name: "Invoices", href: "/invoices", icon: FileText },
+  { name: "Import Data", href: "/import", icon: Upload },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
