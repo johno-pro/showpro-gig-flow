@@ -695,22 +695,7 @@ export type Database = {
           park_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "venues_park_id_fkey"
-            columns: ["park_id"]
-            isOneToOne: false
-            referencedRelation: "parks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "venues_park_id_fkey"
-            columns: ["park_id"]
-            isOneToOne: false
-            referencedRelation: "parks_basic"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
