@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import Bookings from "./pages/Bookings";
 import NewBooking from "./pages/NewBooking";
 import BookingDetails from "./pages/BookingDetails";
+import Artists from "./pages/Artists";
+import NewArtist from "./pages/NewArtist";
+import ArtistDetails from "./pages/ArtistDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
@@ -69,10 +72,27 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-bold mb-2">Artists</h2>
-                      <p className="text-muted-foreground">Artist management coming soon</p>
-                    </div>
+                    <Artists />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/artists/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewArtist />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/artists/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ArtistDetails />
                   </Layout>
                 </ProtectedRoute>
               }
