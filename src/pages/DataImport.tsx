@@ -149,8 +149,9 @@ export default function DataImport() {
   const handleImport = async () => {
     setImporting(true);
     setProgress(0);
+    setResults(null); // Reset results on new import
     const errors: string[] = [];
-    
+
     try {
       toast.info("Starting data import...");
 
@@ -254,11 +255,11 @@ export default function DataImport() {
 
           <Button 
             onClick={handleImport} 
-            disabled={importing || !!results}
+            disabled={importing}
             size="lg"
             className="w-full"
           >
-            {importing ? "Importing..." : results ? "Import Complete" : "Start Import"}
+            {importing ? "Importing..." : results ? "Import Again" : "Start Import"}
           </Button>
         </CardContent>
       </Card>
