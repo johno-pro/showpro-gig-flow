@@ -41,14 +41,25 @@ export default function Locations() {
         .from("locations")
         .select(`
           *,
-          clients:client_id(name),
-          venues!location_id(count)
+          clients:client_id(name)
         `)
         .order("name");
 
       if (error) throw error;
-      setLocations(data || []);
-      setFilteredLocations(data || []);
+      
+      // Count venues for each location
+      const locationsWithVenueCount = await Promise.all(
+        (data || []).map(async (location) => {
+          const { count } = await supabase
+            .from("venues")
+            .select("*", { count: "exact", head: true })
+            .eq("location_id", location.id);
+          return { ...location, venueCount: count || 0 };
+        })
+      );
+      
+      setLocations(locationsWithVenueCount);
+      setFilteredLocations(locationsWithVenueCount);
     } catch (error: any) {
       toast.error("Failed to fetch locations");
       console.error("Error:", error);
@@ -128,7 +139,7 @@ export default function Locations() {
                       {location.address || "No address"} {location.postcode && `• ${location.postcode}`}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{location.venues?.[0]?.count || 0} venues</span>
+                      <span>{location.venueCount || 0} venues</span>
                     </div>
                   </div>
                   <Button

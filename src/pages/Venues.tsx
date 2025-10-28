@@ -27,7 +27,7 @@ export default function Venues() {
         venues.filter(
           (venue) =>
             venue.name.toLowerCase().includes(query) ||
-            venue.parks?.name.toLowerCase().includes(query)
+            venue.locations?.name.toLowerCase().includes(query)
         )
       );
     }
@@ -39,7 +39,7 @@ export default function Venues() {
         .from("venues")
         .select(`
           *,
-          parks (name)
+          locations:location_id(name)
         `)
         .order("name");
 
@@ -115,7 +115,7 @@ export default function Venues() {
                   <div className="flex-1 space-y-1">
                     <p className="font-medium">{venue.name}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {venue.parks && <span>{venue.parks.name}</span>}
+                      {venue.locations && <span>{venue.locations.name}</span>}
                       {venue.capacity && <span>Capacity: {venue.capacity}</span>}
                     </div>
                   </div>
