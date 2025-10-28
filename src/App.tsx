@@ -7,6 +7,8 @@ import { AuthProvider, ProtectedRoute } from "./lib/auth";
 import { Layout } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Bookings from "./pages/Bookings";
+import NewBooking from "./pages/NewBooking";
+import BookingDetails from "./pages/BookingDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
@@ -38,6 +40,26 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Bookings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewBooking />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BookingDetails />
                   </Layout>
                 </ProtectedRoute>
               }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Plus, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Bookings() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +54,7 @@ export default function Bookings() {
           <h1 className="text-3xl font-bold">Bookings</h1>
           <p className="text-muted-foreground">Manage all your entertainment bookings</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => navigate("/bookings/new")}>
           <Plus className="h-4 w-4" />
           New Booking
         </Button>
@@ -68,7 +70,7 @@ export default function Bookings() {
               <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
               <h3 className="mb-2 text-lg font-semibold">No bookings yet</h3>
               <p className="mb-4 text-muted-foreground">Get started by creating your first booking</p>
-              <Button>
+              <Button onClick={() => navigate("/bookings/new")}>
                 <Plus className="h-4 w-4" />
                 Create Booking
               </Button>
@@ -100,7 +102,13 @@ export default function Bookings() {
                       )}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">View Details</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate(`/bookings/${booking.id}`)}
+                  >
+                    View Details
+                  </Button>
                 </div>
               ))}
             </div>
