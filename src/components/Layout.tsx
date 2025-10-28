@@ -2,15 +2,19 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload } from "lucide-react";
+import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Bookings", href: "/bookings", icon: Calendar },
   { name: "Artists", href: "/artists", icon: Users },
-  { name: "Venues", href: "/venues", icon: MapPin },
   { name: "Clients", href: "/clients", icon: Briefcase },
+  { name: "Locations", href: "/locations", icon: MapPin },
+  { name: "Venues", href: "/venues", icon: Building2 },
+  { name: "Contacts", href: "/contacts", icon: UserCircle },
+  { name: "Suppliers", href: "/suppliers", icon: Truck },
+  { name: "Departments", href: "/departments", icon: Briefcase },
   { name: "Payments", href: "/payments", icon: DollarSign },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Import Data", href: "/import", icon: Upload },

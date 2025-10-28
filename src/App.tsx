@@ -21,6 +21,13 @@ import VenueDetails from "./pages/VenueDetails";
 import Locations from "./pages/Locations";
 import NewLocation from "./pages/NewLocation";
 import LocationDetails from "./pages/LocationDetails";
+import Contacts from "./pages/Contacts";
+import NewContact from "./pages/NewContact";
+import ContactDetails from "./pages/ContactDetails";
+import Suppliers from "./pages/Suppliers";
+import NewSupplier from "./pages/NewSupplier";
+import SupplierDetails from "./pages/SupplierDetails";
+import Departments from "./pages/Departments";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
@@ -192,6 +199,76 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <LocationDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contacts"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Contacts />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contacts/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewContact />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contacts/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContactDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/suppliers"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Suppliers />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/suppliers/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <NewSupplier />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/suppliers/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SupplierDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/departments"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Departments />
                   </Layout>
                 </ProtectedRoute>
               }
