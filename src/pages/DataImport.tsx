@@ -159,24 +159,25 @@ export default function DataImport() {
     for (const row of dataRows) {
       try {
         const bookingData: any = {
-          booking_date: row[0]?.trim() || null,
-          start_time: row[1]?.trim() || null,
-          end_time: row[2]?.trim() || null,
-          status: row[3]?.trim() || 'enquiry',
-          client_id: row[4]?.trim() || null,
-          location_id: row[5]?.trim() || null,
-          venue_id: row[6]?.trim() || null,
-          artist_id: row[7]?.trim() || null,
-          fee_model: row[8]?.trim() || 'commission',
-          artist_fee: row[9]?.trim() ? parseFloat(row[9]) : null,
-          client_fee: row[10]?.trim() ? parseFloat(row[10]) : null,
-          commission_rate: row[11]?.trim() ? parseFloat(row[11]) : null,
-          vat_applicable: row[12]?.trim() === 'true' || row[12]?.trim() === '1',
-          deposit_amount: row[13]?.trim() ? parseFloat(row[13]) : null,
-          deposit_paid: row[14]?.trim() === 'true' || row[14]?.trim() === '1',
-          balance_paid: row[15]?.trim() === 'true' || row[15]?.trim() === '1',
-          invoiced: row[16]?.trim() === 'true' || row[16]?.trim() === '1',
-          notes: row[17]?.trim() || null,
+          job_code: row[0]?.trim() || null,
+          booking_date: row[1]?.trim() || null,
+          start_time: row[2]?.trim() || null,
+          end_time: row[3]?.trim() || null,
+          status: row[4]?.trim() || 'enquiry',
+          client_id: row[5]?.trim() || null,
+          location_id: row[6]?.trim() || null,
+          venue_id: row[7]?.trim() || null,
+          artist_id: row[8]?.trim() || null,
+          fee_model: row[9]?.trim() || 'commission',
+          artist_fee: row[10]?.trim() ? parseFloat(row[10]) : null,
+          client_fee: row[11]?.trim() ? parseFloat(row[11]) : 0,
+          commission_rate: row[12]?.trim() ? parseFloat(row[12]) : null,
+          vat_applicable: row[13]?.trim() === 'true' || row[13]?.trim() === '1',
+          deposit_amount: row[14]?.trim() ? parseFloat(row[14]) : null,
+          deposit_paid: row[15]?.trim() === 'true' || row[15]?.trim() === '1',
+          balance_paid: row[16]?.trim() === 'true' || row[16]?.trim() === '1',
+          invoiced: row[17]?.trim() === 'true' || row[17]?.trim() === '1',
+          notes: row[18]?.trim() || null,
         };
 
         const { error } = await supabase
@@ -288,7 +289,7 @@ export default function DataImport() {
               disabled={importing}
             />
             <p className="text-xs text-muted-foreground">
-              Expected columns: booking_date, start_time, end_time, status, client_id, location_id, venue_id, artist_id, fee_model, artist_fee, client_fee, commission_rate, vat_applicable, deposit_amount, deposit_paid, balance_paid, invoiced, notes
+              Expected columns: job_code, booking_date, start_time, end_time, status, client_id, location_id, venue_id, artist_id, fee_model, artist_fee (buy fee), client_fee (sell fee - defaults to 0), commission_rate, vat_applicable, deposit_amount, deposit_paid, balance_paid, invoiced, notes
             </p>
           </div>
 

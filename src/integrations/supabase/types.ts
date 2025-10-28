@@ -120,6 +120,7 @@ export type Database = {
           fee_model: Database["public"]["Enums"]["fee_model"] | null
           id: string
           invoiced: boolean | null
+          job_code: string | null
           location_id: string | null
           notes: string | null
           series_id: string | null
@@ -147,6 +148,7 @@ export type Database = {
           fee_model?: Database["public"]["Enums"]["fee_model"] | null
           id?: string
           invoiced?: boolean | null
+          job_code?: string | null
           location_id?: string | null
           notes?: string | null
           series_id?: string | null
@@ -174,6 +176,7 @@ export type Database = {
           fee_model?: Database["public"]["Enums"]["fee_model"] | null
           id?: string
           invoiced?: boolean | null
+          job_code?: string | null
           location_id?: string | null
           notes?: string | null
           series_id?: string | null
@@ -860,6 +863,7 @@ export type Database = {
       }
     }
     Functions: {
+      generate_job_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
