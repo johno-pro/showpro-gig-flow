@@ -5,14 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function DataImport() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [bookingFile, setBookingFile] = useState<File | null>(null);
   const [results, setResults] = useState<{
     clients: number;
     venues: number;
     artists: number;
+    bookings: number;
     errors: string[];
   } | null>(null);
 
@@ -146,6 +150,49 @@ export default function DataImport() {
     return imported;
   };
 
+  const importBookings = async (csvData: string[][]): Promise<number> => {
+    let imported = 0;
+    
+    // Skip header row
+    const dataRows = csvData.filter((row, idx) => idx > 0 && row.length > 0);
+
+    for (const row of dataRows) {
+      try {
+        const bookingData: any = {
+          booking_date: row[0]?.trim() || null,
+          start_time: row[1]?.trim() || null,
+          end_time: row[2]?.trim() || null,
+          status: row[3]?.trim() || 'enquiry',
+          client_id: row[4]?.trim() || null,
+          location_id: row[5]?.trim() || null,
+          venue_id: row[6]?.trim() || null,
+          artist_id: row[7]?.trim() || null,
+          fee_model: row[8]?.trim() || 'commission',
+          artist_fee: row[9]?.trim() ? parseFloat(row[9]) : null,
+          client_fee: row[10]?.trim() ? parseFloat(row[10]) : null,
+          commission_rate: row[11]?.trim() ? parseFloat(row[11]) : null,
+          vat_applicable: row[12]?.trim() === 'true' || row[12]?.trim() === '1',
+          deposit_amount: row[13]?.trim() ? parseFloat(row[13]) : null,
+          deposit_paid: row[14]?.trim() === 'true' || row[14]?.trim() === '1',
+          balance_paid: row[15]?.trim() === 'true' || row[15]?.trim() === '1',
+          invoiced: row[16]?.trim() === 'true' || row[16]?.trim() === '1',
+          notes: row[17]?.trim() || null,
+        };
+
+        const { error } = await supabase
+          .from('bookings')
+          .insert(bookingData);
+
+        if (error) throw error;
+        imported++;
+      } catch (error: any) {
+        console.error(`Error importing booking:`, error.message);
+      }
+    }
+
+    return imported;
+  };
+
   const handleImport = async () => {
     setImporting(true);
     setProgress(0);
@@ -178,13 +225,25 @@ export default function DataImport() {
       const artistsData = parseCSV(artistsCSV);
       const artistsCount = await importArtists(artistsData);
       
-      setProgress(100);
+      setProgress(85);
       toast.success(`Imported ${artistsCount} artists`);
+
+      // Import Bookings (if file provided)
+      let bookingsCount = 0;
+      if (bookingFile) {
+        const bookingText = await bookingFile.text();
+        const bookingsData = parseCSV(bookingText);
+        bookingsCount = await importBookings(bookingsData);
+        toast.success(`Imported ${bookingsCount} bookings`);
+      }
+
+      setProgress(100);
 
       setResults({
         clients: clientsCount,
         venues: venuesCount,
         artists: artistsCount,
+        bookings: bookingsCount,
         errors,
       });
     } catch (error: any) {
@@ -204,7 +263,7 @@ export default function DataImport() {
             Data Import
           </CardTitle>
           <CardDescription>
-            Import artists, venues, and clients from CSV files
+            Import artists, venues, clients, and bookings from CSV files
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -217,6 +276,20 @@ export default function DataImport() {
               <li>VENUES.csv → venues table (linked to clients)</li>
               <li>ARTISTS_AS_OF_16-10-25.csv → artists table</li>
             </ul>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="booking-csv">Upload Bookings CSV (Optional)</Label>
+            <Input
+              id="booking-csv"
+              type="file"
+              accept=".csv"
+              onChange={(e) => setBookingFile(e.target.files?.[0] || null)}
+              disabled={importing}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: booking_date, start_time, end_time, status, client_id, location_id, venue_id, artist_id, fee_model, artist_fee, client_fee, commission_rate, vat_applicable, deposit_amount, deposit_paid, balance_paid, invoiced, notes
+            </p>
           </div>
 
           {importing && (
@@ -236,6 +309,7 @@ export default function DataImport() {
                 <p>✓ {results.clients} clients imported</p>
                 <p>✓ {results.venues} venues imported</p>
                 <p>✓ {results.artists} artists imported</p>
+                {results.bookings > 0 && <p>✓ {results.bookings} bookings imported</p>}
               </div>
               {results.errors.length > 0 && (
                 <div className="mt-4 space-y-2">
