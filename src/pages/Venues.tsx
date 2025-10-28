@@ -27,7 +27,7 @@ export default function Venues() {
         venues.filter(
           (venue) =>
             venue.name.toLowerCase().includes(query) ||
-            venue.locations?.name.toLowerCase().includes(query)
+            venue.locationName?.toLowerCase().includes(query)
         )
       );
     }
@@ -35,17 +35,31 @@ export default function Venues() {
 
   const fetchVenues = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: venuesData, error: venuesError } = await supabase
         .from("venues")
-        .select(`
-          *,
-          locations:location_id(name)
-        `)
+        .select("*")
         .order("name");
 
-      if (error) throw error;
-      setVenues(data || []);
-      setFilteredVenues(data || []);
+      if (venuesError) throw venuesError;
+
+      // Fetch locations separately
+      const { data: locationsData, error: locationsError } = await supabase
+        .from("locations")
+        .select("id, name");
+
+      if (locationsError) throw locationsError;
+
+      // Create a map for quick lookup
+      const locationsMap = new Map(locationsData?.map(loc => [loc.id, loc.name]) || []);
+
+      // Merge the data
+      const venuesWithLocations = venuesData?.map(venue => ({
+        ...venue,
+        locationName: venue.location_id ? locationsMap.get(venue.location_id) : null
+      })) || [];
+
+      setVenues(venuesWithLocations);
+      setFilteredVenues(venuesWithLocations);
     } catch (error: any) {
       toast.error("Failed to fetch venues");
       console.error("Error:", error);
@@ -115,7 +129,7 @@ export default function Venues() {
                   <div className="flex-1 space-y-1">
                     <p className="font-medium">{venue.name}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {venue.locations && <span>{venue.locations.name}</span>}
+                      {venue.locationName && <span>{venue.locationName}</span>}
                       {venue.capacity && <span>Capacity: {venue.capacity}</span>}
                     </div>
                   </div>
