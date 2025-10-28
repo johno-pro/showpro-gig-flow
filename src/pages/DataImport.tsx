@@ -261,7 +261,31 @@ export default function DataImport() {
           continue;
         }
         
-        const locationId = locationName ? locationMap.get(locationName.toLowerCase().trim()) || null : null;
+        // Find or create location
+        let locationId = locationName ? locationMap.get(locationName.toLowerCase().trim()) || null : null;
+        
+        // If location not found, try to create it
+        if (!locationId && locationName && clientId) {
+          try {
+            const { data: newLocation, error: locationError } = await supabase
+              .from('locations')
+              .insert({ 
+                name: locationName,
+                client_id: clientId 
+              })
+              .select('id')
+              .single();
+            
+            if (!locationError && newLocation) {
+              locationId = newLocation.id;
+              locationMap.set(locationName.toLowerCase().trim(), newLocation.id);
+              console.log(`Created new location: ${locationName}`);
+            }
+          } catch (e) {
+            console.log(`Could not create location: ${locationName}`);
+          }
+        }
+        
         const artistId = artistName && artistName !== '?' ? artistMap.get(artistName.toLowerCase().trim()) || null : null;
 
         // Parse fee amount (remove commas)
