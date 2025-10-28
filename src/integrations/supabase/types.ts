@@ -187,6 +187,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -658,9 +665,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      artists_public: {
+        Row: {
+          act_type: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          notes: string | null
+          supplier_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          act_type?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          supplier_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          act_type?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          supplier_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artists_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      get_artists_for_bookings: {
+        Args: never
+        Returns: {
+          act_type: string
+          id: string
+          name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
