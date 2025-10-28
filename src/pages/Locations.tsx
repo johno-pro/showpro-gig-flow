@@ -41,8 +41,8 @@ export default function Locations() {
         .from("locations")
         .select(`
           *,
-          clients:clients(name),
-          venues:venues(count)
+          clients:client_id(name),
+          venues!location_id(count)
         `)
         .order("name");
 
