@@ -18,6 +18,7 @@ export default function DataImport() {
     artists: number;
     bookings: number;
     bookingsSkipped: number;
+    bookingsUpdated: number;
     errors: string[];
   } | null>(null);
 
@@ -183,9 +184,10 @@ export default function DataImport() {
     return imported;
   };
 
-  const importBookings = async (csvData: string[][]): Promise<{ imported: number; skipped: number }> => {
+  const importBookings = async (csvData: string[][]): Promise<{ imported: number; skipped: number; updated: number }> => {
     let imported = 0;
     let skipped = 0;
+    let updated = 0;
     const missingClients = new Set<string>();
     
     // Skip header row and filter valid rows (exclude totals and empty rows)
@@ -292,11 +294,26 @@ export default function DataImport() {
         const feeStr = row[6]?.trim()?.replace(/,/g, '');
         const artistFee = feeStr ? parseFloat(feeStr) : null;
 
-        // Handle duplicate job codes by skipping
+        // Handle duplicate job codes by updating location
         let jobCode = row[0]?.trim() || null;
         if (jobCode && existingJobCodes.has(jobCode)) {
-          skipped++;
-          console.warn(`Skipping booking - duplicate job code: ${jobCode}`);
+          // Update existing booking with location if we have one
+          if (locationId) {
+            const { error: updateError } = await supabase
+              .from('bookings')
+              .update({ location_id: locationId })
+              .eq('job_code', jobCode);
+            
+            if (!updateError) {
+              updated++;
+              console.log(`Updated booking ${jobCode} with location: ${locationName}`);
+            } else {
+              console.error(`Error updating booking ${jobCode}:`, updateError.message);
+              skipped++;
+            }
+          } else {
+            skipped++;
+          }
           continue;
         }
 
@@ -330,7 +347,7 @@ export default function DataImport() {
       console.warn(`Skipped ${skipped} bookings. Missing clients: ${Array.from(missingClients).join(', ')}`);
     }
 
-    return { imported, skipped };
+    return { imported, skipped, updated };
   };
 
   const handleImport = async () => {
@@ -371,16 +388,22 @@ export default function DataImport() {
       // Import Bookings (if file provided)
       let bookingsCount = 0;
       let bookingsSkipped = 0;
+      let bookingsUpdated = 0;
       if (bookingFile) {
         const bookingText = await bookingFile.text();
         const bookingsData = parseCSV(bookingText);
         const result = await importBookings(bookingsData);
         bookingsCount = result.imported;
         bookingsSkipped = result.skipped;
-        if (bookingsSkipped > 0) {
-          toast.warning(`Imported ${bookingsCount} bookings, skipped ${bookingsSkipped} duplicates`);
-        } else {
-          toast.success(`Imported ${bookingsCount} bookings`);
+        bookingsUpdated = result.updated;
+        
+        const messages = [];
+        if (bookingsCount > 0) messages.push(`${bookingsCount} new`);
+        if (bookingsUpdated > 0) messages.push(`${bookingsUpdated} updated`);
+        if (bookingsSkipped > 0) messages.push(`${bookingsSkipped} skipped`);
+        
+        if (messages.length > 0) {
+          toast.success(`Bookings: ${messages.join(', ')}`);
         }
       } else {
         // Try to fetch from public folder
@@ -390,10 +413,15 @@ export default function DataImport() {
           const result = await importBookings(bookingsData);
           bookingsCount = result.imported;
           bookingsSkipped = result.skipped;
-          if (bookingsSkipped > 0) {
-            toast.warning(`Imported ${bookingsCount} bookings, skipped ${bookingsSkipped} duplicates`);
-          } else {
-            toast.success(`Imported ${bookingsCount} bookings`);
+          bookingsUpdated = result.updated;
+          
+          const messages = [];
+          if (bookingsCount > 0) messages.push(`${bookingsCount} new`);
+          if (bookingsUpdated > 0) messages.push(`${bookingsUpdated} updated`);
+          if (bookingsSkipped > 0) messages.push(`${bookingsSkipped} skipped`);
+          
+          if (messages.length > 0) {
+            toast.success(`Bookings: ${messages.join(', ')}`);
           }
         } catch (e) {
           console.log('No bookings CSV file found in public folder');
@@ -408,6 +436,7 @@ export default function DataImport() {
         artists: artistsCount,
         bookings: bookingsCount,
         bookingsSkipped: bookingsSkipped,
+        bookingsUpdated: bookingsUpdated,
         errors,
       });
     } catch (error: any) {
@@ -479,8 +508,11 @@ export default function DataImport() {
                 <p>✓ {results.artists} artists imported</p>
                 <p>
                   ✓ {results.bookings} bookings imported
+                  {results.bookingsUpdated > 0 && (
+                    <span className="text-blue-600"> ({results.bookingsUpdated} updated)</span>
+                  )}
                   {results.bookingsSkipped > 0 && (
-                    <span className="text-amber-600"> ({results.bookingsSkipped} skipped as duplicates)</span>
+                    <span className="text-amber-600"> ({results.bookingsSkipped} skipped)</span>
                   )}
                 </p>
               </div>
