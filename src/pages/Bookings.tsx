@@ -111,7 +111,11 @@ export default function Bookings() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => navigate(`/bookings/${booking.id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log("Navigating to booking:", booking.id);
+                      navigate(`/bookings/${booking.id}`);
+                    }}
                   >
                     View Details
                   </Button>
