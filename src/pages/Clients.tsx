@@ -40,7 +40,7 @@ export default function Clients() {
         .from("clients")
         .select(`
           *,
-          parks:parks(count),
+          locations:locations(count),
           venues:venues(count)
         `)
         .order("name");
@@ -125,7 +125,7 @@ export default function Clients() {
                       {client.address || "No address"}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{client.parks?.[0]?.count || 0} parks</span>
+                      <span>{client.locations?.[0]?.count || 0} locations</span>
                       <span>•</span>
                       <span>{client.venues?.[0]?.count || 0} venues</span>
                     </div>

@@ -58,7 +58,7 @@ export default function Dashboard() {
           artists (name),
           clients (name),
           venues (name),
-          parks (name)
+          locations (name)
         `)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -160,7 +160,7 @@ export default function Dashboard() {
                   <div className="space-y-1">
                     <p className="font-medium">{booking.artists?.name || "No artist"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {booking.clients?.name} • {booking.parks?.name} • {booking.venues?.name}
+                      {booking.clients?.name} • {booking.locations?.name} • {booking.venues?.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(booking.booking_date).toLocaleDateString()}

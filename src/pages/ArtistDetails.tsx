@@ -45,7 +45,7 @@ export default function ArtistDetails() {
             *,
             clients (name),
             venues (name),
-            parks (name)
+            locations (name)
           `)
           .eq("artist_id", id)
           .order("booking_date", { ascending: false }),
@@ -292,7 +292,7 @@ export default function ArtistDetails() {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {booking.parks?.name || "No park"} • {booking.venues?.name || "No venue"}
+                      {booking.locations?.name || "No location"} • {booking.venues?.name || "No venue"}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{new Date(booking.booking_date).toLocaleDateString()}</span>

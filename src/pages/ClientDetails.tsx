@@ -24,7 +24,7 @@ export default function ClientDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [client, setClient] = useState<any>(null);
-  const [parks, setParks] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -62,7 +62,7 @@ export default function ClientDetails() {
       }
 
       setClient(clientRes.data);
-      setParks(locationsRes.data || []);
+      setLocations(locationsRes.data || []);
       setVenues(venuesRes.data || []);
     } catch (error: any) {
       toast.error("Failed to fetch client details");
@@ -152,8 +152,8 @@ export default function ClientDetails() {
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This action cannot be undone. This will permanently delete the client
-                  {(parks.length > 0 || venues.length > 0) &&
-                    ` and ${parks.length} park(s) and ${venues.length} venue(s) associated with them.`}
+                  {(locations.length > 0 || venues.length > 0) &&
+                    ` and ${locations.length} location(s) and ${venues.length} venue(s) associated with them.`}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -321,48 +321,48 @@ export default function ClientDetails() {
         </div>
       </div>
 
-      <Tabs defaultValue="parks" className="w-full">
+      <Tabs defaultValue="locations" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="parks">Parks ({parks.length})</TabsTrigger>
+          <TabsTrigger value="locations">Locations ({locations.length})</TabsTrigger>
           <TabsTrigger value="venues">Venues ({venues.length})</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="parks" className="space-y-4">
+        <TabsContent value="locations" className="space-y-4">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  Parks
+                  Locations
                 </CardTitle>
-                <Button size="sm" onClick={() => navigate(`/parks/new?client=${id}`)}>
+                <Button size="sm" onClick={() => navigate(`/locations/new?client=${id}`)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Park
+                  Add Location
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {parks.length === 0 ? (
+              {locations.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
-                  No parks yet for this client
+                  No locations yet for this client
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {parks.map((park) => (
+                  {locations.map((location) => (
                     <div
-                      key={park.id}
+                      key={location.id}
                       className="flex items-center justify-between rounded-lg border border-border p-4"
                     >
                       <div className="space-y-1">
-                        <p className="font-medium">{park.name}</p>
-                        {park.address && (
-                          <p className="text-sm text-muted-foreground">{park.address}</p>
+                        <p className="font-medium">{location.name}</p>
+                        {location.address && (
+                          <p className="text-sm text-muted-foreground">{location.address}</p>
                         )}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/parks/${park.id}`)}
+                        onClick={() => navigate(`/locations/${location.id}`)}
                       >
                         View
                       </Button>
@@ -396,8 +396,8 @@ export default function ClientDetails() {
                     >
                       <div className="space-y-1">
                         <p className="font-medium">{venue.name}</p>
-                        {venue.parks && (
-                          <p className="text-sm text-muted-foreground">{venue.parks.name}</p>
+                        {venue.locations && (
+                          <p className="text-sm text-muted-foreground">{venue.locations.name}</p>
                         )}
                         {venue.capacity && (
                           <p className="text-sm text-muted-foreground">

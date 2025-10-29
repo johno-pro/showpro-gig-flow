@@ -43,7 +43,7 @@ export default function BookingDetails() {
           artists (id, name, act_type),
           clients (id, name),
           venues (id, name),
-          parks (id, name)
+          locations (id, name)
         `)
         .eq("id", id)
         .single();
@@ -251,10 +251,10 @@ export default function BookingDetails() {
               <p className="mt-1">{booking.clients?.name}</p>
             </div>
 
-            {booking.parks && (
+            {booking.locations && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Park</p>
-                <p className="mt-1">{booking.parks.name}</p>
+                <p className="text-sm font-medium text-muted-foreground">Location</p>
+                <p className="mt-1">{booking.locations.name}</p>
               </div>
             )}
 
