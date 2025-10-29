@@ -277,31 +277,55 @@ export type Database = {
       }
       clients: {
         Row: {
+          accounts_contact_email: string | null
+          accounts_contact_name: string | null
+          accounts_contact_phone: string | null
           address: string | null
           code: string | null
+          company_number: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string | null
           id: string
           name: string
           notes: string | null
           updated_at: string | null
+          vat_number: string | null
         }
         Insert: {
+          accounts_contact_email?: string | null
+          accounts_contact_name?: string | null
+          accounts_contact_phone?: string | null
           address?: string | null
           code?: string | null
+          company_number?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           id?: string
           name: string
           notes?: string | null
           updated_at?: string | null
+          vat_number?: string | null
         }
         Update: {
+          accounts_contact_email?: string | null
+          accounts_contact_name?: string | null
+          accounts_contact_phone?: string | null
           address?: string | null
           code?: string | null
+          company_number?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           id?: string
           name?: string
           notes?: string | null
           updated_at?: string | null
+          vat_number?: string | null
         }
         Relationships: []
       }

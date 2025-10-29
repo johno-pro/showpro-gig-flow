@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Trash2, Building2, MapPin, FileText, Plus } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Building2, MapPin, FileText, Plus, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { ClientForm } from "@/components/ClientForm";
 
@@ -165,50 +165,161 @@ export default function ClientDetails() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Client Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Name</p>
-            <p className="mt-1 text-lg font-semibold">{client.name}</p>
-          </div>
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Company Name</p>
+              <p className="mt-1 text-lg font-semibold">{client.name}</p>
+            </div>
 
-          {client.code && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Code</p>
-                <p className="mt-1">{client.code}</p>
-              </div>
-            </>
-          )}
+            <div className="grid gap-4 md:grid-cols-2">
+              {client.code && (
+                <div>
+                  <p className="text-sm font-medium">Client Code</p>
+                  <p className="text-sm text-muted-foreground">{client.code}</p>
+                </div>
+              )}
 
-          {client.address && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Address</p>
-                <p className="mt-1 whitespace-pre-wrap">{client.address}</p>
-              </div>
-            </>
-          )}
+              {client.company_number && (
+                <div>
+                  <p className="text-sm font-medium">Company Number</p>
+                  <p className="text-sm text-muted-foreground">{client.company_number}</p>
+                </div>
+              )}
 
-          {client.notes && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Notes</p>
-                <p className="mt-1 whitespace-pre-wrap">{client.notes}</p>
+              {client.vat_number && (
+                <div>
+                  <p className="text-sm font-medium">VAT Number</p>
+                  <p className="text-sm text-muted-foreground">{client.vat_number}</p>
+                </div>
+              )}
+            </div>
+
+            {client.address && (
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Company Address</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {client.address}
+                  </p>
+                </div>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            )}
+
+            {client.notes && (
+              <div>
+                <p className="text-sm font-medium mb-2">Notes</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {client.notes}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Main Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {client.contact_name && (
+                <div>
+                  <p className="text-sm font-medium">Contact Name</p>
+                  <p className="text-sm text-muted-foreground">{client.contact_name}</p>
+                </div>
+              )}
+
+              {client.contact_email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Email</p>
+                    <a
+                      href={`mailto:${client.contact_email}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {client.contact_email}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {client.contact_phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Phone</p>
+                    <a
+                      href={`tel:${client.contact_phone}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {client.contact_phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {!client.contact_name && !client.contact_email && !client.contact_phone && (
+                <p className="text-sm text-muted-foreground">No main contact information</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Accounts Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {client.accounts_contact_name && (
+                <div>
+                  <p className="text-sm font-medium">Contact Name</p>
+                  <p className="text-sm text-muted-foreground">{client.accounts_contact_name}</p>
+                </div>
+              )}
+
+              {client.accounts_contact_email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Email</p>
+                    <a
+                      href={`mailto:${client.accounts_contact_email}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {client.accounts_contact_email}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {client.accounts_contact_phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Phone</p>
+                    <a
+                      href={`tel:${client.accounts_contact_phone}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {client.accounts_contact_phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {!client.accounts_contact_name && !client.accounts_contact_email && !client.accounts_contact_phone && (
+                <p className="text-sm text-muted-foreground">No accounts contact information</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <Tabs defaultValue="parks" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
