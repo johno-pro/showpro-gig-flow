@@ -129,47 +129,33 @@ export default function SupplierDetails() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Supplier Information</CardTitle>
+            <CardTitle>Company Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {supplier.email && (
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-muted-foreground" />
+            <div className="grid gap-4 md:grid-cols-2">
+              {supplier.company_number && (
                 <div>
-                  <p className="text-sm font-medium">Email</p>
-                  <a
-                    href={`mailto:${supplier.email}`}
-                    className="text-sm text-muted-foreground hover:underline"
-                  >
-                    {supplier.email}
-                  </a>
+                  <p className="text-sm font-medium">Company Number</p>
+                  <p className="text-sm text-muted-foreground">{supplier.company_number}</p>
                 </div>
-              </div>
-            )}
+              )}
 
-            {supplier.phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
+              {supplier.vat_number && (
                 <div>
-                  <p className="text-sm font-medium">Phone</p>
-                  <a
-                    href={`tel:${supplier.phone}`}
-                    className="text-sm text-muted-foreground hover:underline"
-                  >
-                    {supplier.phone}
-                  </a>
+                  <p className="text-sm font-medium">VAT Number</p>
+                  <p className="text-sm text-muted-foreground">{supplier.vat_number}</p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {supplier.address && (
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm font-medium">Company Address</p>
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {supplier.address}
                   </p>
@@ -188,6 +174,102 @@ export default function SupplierDetails() {
           </CardContent>
         </Card>
 
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Main Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {supplier.contact_name && (
+                <div>
+                  <p className="text-sm font-medium">Contact Name</p>
+                  <p className="text-sm text-muted-foreground">{supplier.contact_name}</p>
+                </div>
+              )}
+
+              {supplier.email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Email</p>
+                    <a
+                      href={`mailto:${supplier.email}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {supplier.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {supplier.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Phone</p>
+                    <a
+                      href={`tel:${supplier.phone}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {supplier.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Accounts Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {supplier.accounts_contact_name && (
+                <div>
+                  <p className="text-sm font-medium">Contact Name</p>
+                  <p className="text-sm text-muted-foreground">{supplier.accounts_contact_name}</p>
+                </div>
+              )}
+
+              {supplier.accounts_contact_email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Email</p>
+                    <a
+                      href={`mailto:${supplier.accounts_contact_email}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {supplier.accounts_contact_email}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {supplier.accounts_contact_phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Phone</p>
+                    <a
+                      href={`tel:${supplier.accounts_contact_phone}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {supplier.accounts_contact_phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {!supplier.accounts_contact_name && !supplier.accounts_contact_email && !supplier.accounts_contact_phone && (
+                <p className="text-sm text-muted-foreground">No accounts contact information</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>Statistics</CardTitle>
@@ -204,9 +286,8 @@ export default function SupplierDetails() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <Card>
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Artists ({artists.length})</CardTitle>

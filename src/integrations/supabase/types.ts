@@ -586,7 +586,11 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          accounts_contact_email: string | null
+          accounts_contact_name: string | null
+          accounts_contact_phone: string | null
           address: string | null
+          company_number: string | null
           contact_name: string | null
           created_at: string | null
           email: string | null
@@ -595,9 +599,14 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string | null
+          vat_number: string | null
         }
         Insert: {
+          accounts_contact_email?: string | null
+          accounts_contact_name?: string | null
+          accounts_contact_phone?: string | null
           address?: string | null
+          company_number?: string | null
           contact_name?: string | null
           created_at?: string | null
           email?: string | null
@@ -606,9 +615,14 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string | null
+          vat_number?: string | null
         }
         Update: {
+          accounts_contact_email?: string | null
+          accounts_contact_name?: string | null
+          accounts_contact_phone?: string | null
           address?: string | null
+          company_number?: string | null
           contact_name?: string | null
           created_at?: string | null
           email?: string | null
@@ -617,6 +631,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string | null
+          vat_number?: string | null
         }
         Relationships: []
       }
