@@ -14,11 +14,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 const artistFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Professional name is required"),
+  full_name: z.string().optional(),
   act_type: z.string().optional(),
+  supplier_id: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
   notes: z.string().optional(),
@@ -34,12 +43,15 @@ interface ArtistFormProps {
 
 export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
   const [loading, setLoading] = useState(false);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
 
   const form = useForm<ArtistFormValues>({
     resolver: zodResolver(artistFormSchema),
     defaultValues: {
       name: "",
+      full_name: "",
       act_type: "",
+      supplier_id: "",
       email: "",
       phone: "",
       notes: "",
@@ -47,10 +59,25 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
   });
 
   useEffect(() => {
+    fetchSuppliers();
     if (artistId) {
       fetchArtist();
     }
   }, [artistId]);
+
+  const fetchSuppliers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setSuppliers(data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const fetchArtist = async () => {
     if (!artistId) return;
@@ -67,7 +94,9 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
       if (data) {
         form.reset({
           name: data.name,
+          full_name: data.full_name || "",
           act_type: data.act_type || "",
+          supplier_id: data.supplier_id || "",
           email: data.email || "",
           phone: data.phone || "",
           notes: data.notes || "",
@@ -84,7 +113,9 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
     try {
       const artistData = {
         name: values.name,
+        full_name: values.full_name || null,
         act_type: values.act_type || null,
+        supplier_id: values.supplier_id || null,
         email: values.email || null,
         phone: values.phone || null,
         notes: values.notes || null,
@@ -123,9 +154,23 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name *</FormLabel>
+                <FormLabel>Professional Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Artist or act name" {...field} />
+                  <Input placeholder="Stage or professional name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="full_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Full legal name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -141,6 +186,31 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
                 <FormControl>
                   <Input placeholder="e.g., Singer, Band, Comedian" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="supplier_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Supplier</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select supplier (optional)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -165,7 +235,7 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>Tel Number</FormLabel>
                 <FormControl>
                   <Input placeholder="Phone number" {...field} />
                 </FormControl>

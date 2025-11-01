@@ -19,6 +19,7 @@ export type Database = {
           act_type: string | null
           created_at: string | null
           email: string | null
+          full_name: string | null
           id: string
           name: string
           notes: string | null
@@ -30,6 +31,7 @@ export type Database = {
           act_type?: string | null
           created_at?: string | null
           email?: string | null
+          full_name?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           act_type?: string | null
           created_at?: string | null
           email?: string | null
+          full_name?: string | null
           id?: string
           name?: string
           notes?: string | null

@@ -38,7 +38,19 @@ export default function ArtistDetails() {
   const fetchArtistData = async () => {
     try {
       const [artistRes, bookingsRes] = await Promise.all([
-        supabase.from("artists").select("*").eq("id", id).maybeSingle(),
+        supabase
+          .from("artists")
+          .select(`
+            *,
+            suppliers (
+              name,
+              contact_name,
+              email,
+              phone
+            )
+          `)
+          .eq("id", id)
+          .maybeSingle(),
         supabase
           .from("bookings")
           .select(`
@@ -177,9 +189,16 @@ export default function ArtistDetails() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Name</p>
+              <p className="text-sm font-medium text-muted-foreground">Professional Name</p>
               <p className="mt-1 text-lg font-semibold">{artist.name}</p>
             </div>
+
+            {artist.full_name && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                <p className="mt-1">{artist.full_name}</p>
+              </div>
+            )}
 
             {artist.act_type && (
               <>
@@ -195,17 +214,24 @@ export default function ArtistDetails() {
 
             <Separator />
 
-            {artist.email && (
+            {artist.suppliers && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Email</p>
-                <p className="mt-1">{artist.email}</p>
+                <p className="text-sm font-medium text-muted-foreground">Supplier</p>
+                <Badge variant="secondary" className="mt-1">{artist.suppliers.name}</Badge>
               </div>
             )}
 
-            {artist.phone && (
+            {(artist.suppliers?.email || artist.email) && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Phone</p>
-                <p className="mt-1">{artist.phone}</p>
+                <p className="text-sm font-medium text-muted-foreground">Email</p>
+                <p className="mt-1">{artist.suppliers?.email || artist.email}</p>
+              </div>
+            )}
+
+            {(artist.suppliers?.phone || artist.phone) && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Tel Number</p>
+                <p className="mt-1">{artist.suppliers?.phone || artist.phone}</p>
               </div>
             )}
           </CardContent>

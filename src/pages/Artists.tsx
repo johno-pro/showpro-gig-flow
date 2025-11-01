@@ -28,8 +28,10 @@ export default function Artists() {
         artists.filter(
           (artist) =>
             artist.name.toLowerCase().includes(query) ||
+            artist.full_name?.toLowerCase().includes(query) ||
             artist.act_type?.toLowerCase().includes(query) ||
-            artist.email?.toLowerCase().includes(query)
+            artist.email?.toLowerCase().includes(query) ||
+            artist.suppliers?.name.toLowerCase().includes(query)
         )
       );
     }
@@ -39,7 +41,15 @@ export default function Artists() {
     try {
       const { data, error } = await supabase
         .from("artists")
-        .select("*")
+        .select(`
+          *,
+          suppliers (
+            name,
+            contact_name,
+            email,
+            phone
+          )
+        `)
         .order("name");
 
       if (error) throw error;
@@ -106,32 +116,44 @@ export default function Artists() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredArtists.map((artist) => (
-                <div
-                  key={artist.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50"
-                >
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-3">
-                      <p className="font-medium">{artist.name}</p>
-                      {artist.act_type && (
-                        <Badge variant="outline">{artist.act_type}</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {artist.email && <span>{artist.email}</span>}
-                      {artist.phone && <span>{artist.phone}</span>}
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/artists/${artist.id}`)}
+              {filteredArtists.map((artist) => {
+                const displayEmail = artist.suppliers?.email || artist.email;
+                const displayPhone = artist.suppliers?.phone || artist.phone;
+                const supplierName = artist.suppliers?.name;
+
+                return (
+                  <div
+                    key={artist.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50"
                   >
-                    View Details
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <p className="font-medium">{artist.name}</p>
+                        {artist.full_name && (
+                          <span className="text-sm text-muted-foreground">({artist.full_name})</span>
+                        )}
+                        {supplierName && (
+                          <Badge variant="secondary">{supplierName}</Badge>
+                        )}
+                        {artist.act_type && (
+                          <Badge variant="outline">{artist.act_type}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                        {displayEmail && <span>{displayEmail}</span>}
+                        {displayPhone && <span>{displayPhone}</span>}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/artists/${artist.id}`)}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
