@@ -572,6 +572,13 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "emails_queue_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_public_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invoice_batches: {
@@ -702,6 +709,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_public_view"
             referencedColumns: ["id"]
           },
         ]
@@ -913,6 +927,103 @@ export type Database = {
           name?: string | null
         }
         Relationships: []
+      }
+      bookings_public_view: {
+        Row: {
+          artist_id: string | null
+          artist_status: Database["public"]["Enums"]["booking_status"] | null
+          client_id: string | null
+          client_status: Database["public"]["Enums"]["booking_status"] | null
+          created_at: string | null
+          description: string | null
+          finish_date: string | null
+          finish_time: string | null
+          id: string | null
+          location_id: string | null
+          notes: string | null
+          start_date: string | null
+          start_time: string | null
+          updated_at: string | null
+          venue_id: string | null
+        }
+        Insert: {
+          artist_id?: string | null
+          artist_status?: Database["public"]["Enums"]["booking_status"] | null
+          client_id?: string | null
+          client_status?: Database["public"]["Enums"]["booking_status"] | null
+          created_at?: string | null
+          description?: string | null
+          finish_date?: string | null
+          finish_time?: string | null
+          id?: string | null
+          location_id?: string | null
+          notes?: string | null
+          start_date?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          venue_id?: string | null
+        }
+        Update: {
+          artist_id?: string | null
+          artist_status?: Database["public"]["Enums"]["booking_status"] | null
+          client_id?: string | null
+          client_status?: Database["public"]["Enums"]["booking_status"] | null
+          created_at?: string | null
+          description?: string | null
+          finish_date?: string | null
+          finish_time?: string | null
+          id?: string | null
+          location_id?: string | null
+          notes?: string | null
+          start_date?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists_for_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_park_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_park_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts_basic: {
         Row: {
