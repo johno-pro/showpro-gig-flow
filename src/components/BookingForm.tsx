@@ -64,6 +64,9 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
+      booking_date: new Date().toISOString().split('T')[0],
+      start_time: "19:00",
+      end_time: "23:59",
       status: "enquiry",
       fee_model: "commission",
       vat_applicable: true,
@@ -131,6 +134,30 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       setVenues(data || []);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const fetchArtistLastBooking = async (artistId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("artist_fee, vat_applicable, deposit_amount, client_fee")
+        .eq("artist_id", artistId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // Auto-fill fields from most recent booking
+        form.setValue("artist_fee", data.artist_fee?.toString() || "");
+        form.setValue("vat_applicable", data.vat_applicable ?? true);
+        form.setValue("deposit_amount", data.deposit_amount?.toString() || "");
+        form.setValue("client_fee", data.client_fee?.toString() || "");
+      }
+    } catch (error) {
+      console.error("Error fetching artist's last booking:", error);
     }
   };
 
@@ -399,7 +426,15 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Artist</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value && !bookingId) {
+                      fetchArtistLastBooking(value);
+                    }
+                  }}
+                  value={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select artist" />
