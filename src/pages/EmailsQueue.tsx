@@ -70,6 +70,16 @@ export default function EmailsQueue() {
 
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
+      // Validate length constraints
+      if (field === "email_subject" && value && value.length > 200) {
+        toast.error("Subject must be 200 characters or less");
+        return;
+      }
+      if (field === "email_body" && value && value.length > 10000) {
+        toast.error("Body must be 10,000 characters or less");
+        return;
+      }
+
       const { error } = await supabase
         .from("emails_queue")
         .update({ [field]: value })
@@ -79,7 +89,7 @@ export default function EmailsQueue() {
       toast.success("Updated successfully");
       fetchEmails();
     } catch (error: any) {
-      toast.error("Update failed: " + error.message);
+      toast.error("Update failed");
     }
   };
 
@@ -139,12 +149,19 @@ export default function EmailsQueue() {
         <h1 className="text-3xl font-bold mb-4">Email Approvals & Sending</h1>
         
         <div className="flex gap-4 mb-4">
-          <Input
-            placeholder="Filter by recipient type"
+          <Select
             value={filters.recipient_type}
-            onChange={(e) => setFilters({ ...filters, recipient_type: e.target.value })}
-            className="w-64"
-          />
+            onValueChange={(value) => setFilters({ ...filters, recipient_type: value })}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Recipient Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All</SelectItem>
+              <SelectItem value="artist">Artist</SelectItem>
+              <SelectItem value="client">Client</SelectItem>
+            </SelectContent>
+          </Select>
           
           <Select
             value={filters.approved_to_send}
@@ -217,20 +234,30 @@ export default function EmailsQueue() {
                 </TableCell>
                 <TableCell>{email.recipient_type || "-"}</TableCell>
                 <TableCell>
-                  <Input
-                    value={email.email_subject || ""}
-                    onChange={(e) => handleUpdate(email.id, "email_subject", e.target.value)}
-                    onBlur={(e) => handleUpdate(email.id, "email_subject", e.target.value)}
-                    className="min-w-[200px]"
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      value={email.email_subject || ""}
+                      onBlur={(e) => handleUpdate(email.id, "email_subject", e.target.value)}
+                      maxLength={200}
+                      className="min-w-[200px]"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      {(email.email_subject || "").length}/200
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Textarea
-                    value={email.email_body || ""}
-                    onChange={(e) => handleUpdate(email.id, "email_body", e.target.value)}
-                    onBlur={(e) => handleUpdate(email.id, "email_body", e.target.value)}
-                    className="min-w-[300px] min-h-[80px]"
-                  />
+                  <div className="space-y-1">
+                    <Textarea
+                      value={email.email_body || ""}
+                      onBlur={(e) => handleUpdate(email.id, "email_body", e.target.value)}
+                      maxLength={10000}
+                      className="min-w-[300px] min-h-[80px]"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      {(email.email_body || "").length}/10,000
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Checkbox
