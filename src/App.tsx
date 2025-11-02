@@ -34,6 +34,7 @@ import TeamDetails from "./pages/TeamDetails";
 import Payments from "./pages/Payments";
 import NewPayment from "./pages/NewPayment";
 import PaymentDetails from "./pages/PaymentDetails";
+import PaymentsRemittance from "./pages/PaymentsRemittance";
 import InvoiceBatches from "./pages/InvoiceBatches";
 import NewInvoiceBatch from "./pages/NewInvoiceBatch";
 import InvoiceBatchDetails from "./pages/InvoiceBatchDetails";
@@ -342,6 +343,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <PaymentDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/remittance"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <PaymentsRemittance />
                   </Layout>
                 </ProtectedRoute>
               }
