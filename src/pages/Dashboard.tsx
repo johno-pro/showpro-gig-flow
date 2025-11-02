@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Calendar, TrendingUp, AlertCircle, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,6 +22,7 @@ interface StatsCard {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [statsCards, setStatsCards] = useState<StatsCard[]>([]);
   const [bookingsByWeek, setBookingsByWeek] = useState<any[]>([]);
   const [bookingStatus, setBookingStatus] = useState<any[]>([]);
@@ -169,6 +172,32 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">ShowPro Manager Dashboard</h1>
         <p className="text-muted-foreground">Key metrics and insights for your business</p>
       </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => navigate("/bookings/new")} size="lg">
+              ➕ Add Booking
+            </Button>
+            <Button onClick={() => navigate("/payments")} variant="secondary" size="lg">
+              💰 Approve Payment
+            </Button>
+            <Button onClick={() => navigate("/invoice-batches/new")} variant="secondary" size="lg">
+              🧾 Send Invoice
+            </Button>
+            <Button onClick={() => navigate("/emails-queue")} variant="secondary" size="lg">
+              📨 Review Emails
+            </Button>
+            <Button onClick={() => navigate("/bookings")} variant="secondary" size="lg">
+              📅 Upcoming Week
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
