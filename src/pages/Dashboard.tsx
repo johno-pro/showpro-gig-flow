@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, TrendingUp, AlertCircle, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { BookingForm } from "@/components/BookingForm";
+import { PaymentForm } from "@/components/PaymentForm";
+import { InvoiceBatchForm } from "@/components/InvoiceBatchForm";
 import { Badge } from "@/components/ui/badge";
 import {
   ChartContainer,
@@ -22,7 +26,7 @@ interface StatsCard {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const { toast } = useToast();
   const [statsCards, setStatsCards] = useState<StatsCard[]>([]);
   const [bookingsByWeek, setBookingsByWeek] = useState<any[]>([]);
   const [bookingStatus, setBookingStatus] = useState<any[]>([]);
@@ -30,6 +34,7 @@ export default function Dashboard() {
   const [depositStatus, setDepositStatus] = useState<any[]>([]);
   const [attentionNeeded, setAttentionNeeded] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openModal, setOpenModal] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -160,6 +165,56 @@ export default function Dashboard() {
     return "default";
   };
 
+  const handleSuccess = (message: string) => {
+    toast({
+      title: "Success",
+      description: message,
+    });
+    setOpenModal(null);
+    fetchDashboardData();
+  };
+
+  const handlePaymentSubmit = async (data: any) => {
+    try {
+      const { error } = await supabase.from("payments").insert({
+        booking_id: data.booking_id,
+        amount: parseFloat(data.amount),
+        payment_type: data.payment_type,
+        payment_date: data.payment_date || null,
+        notes: data.notes,
+      });
+      if (error) throw error;
+      handleSuccess("Payment saved successfully");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save payment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInvoiceSubmit = async (data: any) => {
+    try {
+      const { error } = await supabase.from("invoice_batches").insert({
+        client_id: data.client_id || null,
+        batch_date: data.batch_date,
+        invoice_number: data.invoice_number,
+        total_amount: data.total_amount ? parseFloat(data.total_amount) : null,
+        sent: data.sent || false,
+        notes: data.notes,
+      });
+      if (error) throw error;
+      handleSuccess("Invoice batch created successfully");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create invoice batch",
+        variant: "destructive",
+      });
+    }
+  };
+
   const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
 
   if (loading) {
@@ -180,24 +235,80 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Button onClick={() => navigate("/bookings/new")} size="lg">
+            <Button onClick={() => setOpenModal("booking")} size="lg">
               ➕ Add Booking
             </Button>
-            <Button onClick={() => navigate("/payments")} variant="secondary" size="lg">
+            <Button onClick={() => setOpenModal("payment")} variant="secondary" size="lg">
               💰 Approve Payment
             </Button>
-            <Button onClick={() => navigate("/invoice-batches/new")} variant="secondary" size="lg">
+            <Button onClick={() => setOpenModal("invoice")} variant="secondary" size="lg">
               🧾 Send Invoice
             </Button>
-            <Button onClick={() => navigate("/emails-queue")} variant="secondary" size="lg">
+            <Button onClick={() => setOpenModal("emails")} variant="secondary" size="lg">
               📨 Review Emails
             </Button>
-            <Button onClick={() => navigate("/bookings")} variant="secondary" size="lg">
+            <Button onClick={() => setOpenModal("upcoming")} variant="secondary" size="lg">
               📅 Upcoming Week
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Modals */}
+      <Dialog open={openModal === "booking"} onOpenChange={(open) => !open && setOpenModal(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New Booking</DialogTitle>
+          </DialogHeader>
+          <BookingForm onSuccess={() => handleSuccess("Booking created successfully")} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openModal === "payment"} onOpenChange={(open) => !open && setOpenModal(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Approve Payment</DialogTitle>
+          </DialogHeader>
+          <PaymentForm onSubmit={handlePaymentSubmit} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openModal === "invoice"} onOpenChange={(open) => !open && setOpenModal(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Send Invoice</DialogTitle>
+          </DialogHeader>
+          <InvoiceBatchForm onSubmit={handleInvoiceSubmit} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openModal === "emails"} onOpenChange={(open) => !open && setOpenModal(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Pending Emails</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">View and manage pending emails in the queue.</p>
+            <Button onClick={() => { setOpenModal(null); window.location.href = "/emails-queue"; }}>
+              Go to Emails Queue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openModal === "upcoming"} onOpenChange={(open) => !open && setOpenModal(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upcoming Week Bookings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">View bookings for the next 7 days.</p>
+            <Button onClick={() => { setOpenModal(null); window.location.href = "/bookings"; }}>
+              Go to Bookings
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
