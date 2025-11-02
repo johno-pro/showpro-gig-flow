@@ -36,6 +36,7 @@ import NewPayment from "./pages/NewPayment";
 import PaymentDetails from "./pages/PaymentDetails";
 import PaymentsRemittance from "./pages/PaymentsRemittance";
 import EmailsQueue from "./pages/EmailsQueue";
+import TermsLibrary from "./pages/TermsLibrary";
 import InvoiceBatches from "./pages/InvoiceBatches";
 import NewInvoiceBatch from "./pages/NewInvoiceBatch";
 import InvoiceBatchDetails from "./pages/InvoiceBatchDetails";
@@ -364,6 +365,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <EmailsQueue />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/terms-library"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <TermsLibrary />
                   </Layout>
                 </ProtectedRoute>
               }
