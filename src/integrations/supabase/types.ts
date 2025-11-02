@@ -108,6 +108,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          accounts_contact_id: string | null
           artist_fee: number | null
           artist_id: string | null
           artist_status: Database["public"]["Enums"]["booking_status"] | null
@@ -137,6 +138,8 @@ export type Database = {
           location_id: string | null
           notes: string | null
           profit_percent: number | null
+          remittance_date: string | null
+          remittance_received: boolean | null
           sell_fee: number | null
           series_id: string | null
           start_date: string | null
@@ -145,12 +148,14 @@ export type Database = {
           supplier_contact_name: string | null
           supplier_id: string | null
           team_id: string | null
+          terms_template_id: string | null
           updated_at: string | null
           vat_applicable: boolean | null
           vat_rate: number | null
           venue_id: string | null
         }
         Insert: {
+          accounts_contact_id?: string | null
           artist_fee?: number | null
           artist_id?: string | null
           artist_status?: Database["public"]["Enums"]["booking_status"] | null
@@ -180,6 +185,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           profit_percent?: number | null
+          remittance_date?: string | null
+          remittance_received?: boolean | null
           sell_fee?: number | null
           series_id?: string | null
           start_date?: string | null
@@ -188,12 +195,14 @@ export type Database = {
           supplier_contact_name?: string | null
           supplier_id?: string | null
           team_id?: string | null
+          terms_template_id?: string | null
           updated_at?: string | null
           vat_applicable?: boolean | null
           vat_rate?: number | null
           venue_id?: string | null
         }
         Update: {
+          accounts_contact_id?: string | null
           artist_fee?: number | null
           artist_id?: string | null
           artist_status?: Database["public"]["Enums"]["booking_status"] | null
@@ -223,6 +232,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           profit_percent?: number | null
+          remittance_date?: string | null
+          remittance_received?: boolean | null
           sell_fee?: number | null
           series_id?: string | null
           start_date?: string | null
@@ -231,12 +242,27 @@ export type Database = {
           supplier_contact_name?: string | null
           supplier_id?: string | null
           team_id?: string | null
+          terms_template_id?: string | null
           updated_at?: string | null
           vat_applicable?: boolean | null
           vat_rate?: number | null
           venue_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_accounts_contact_id_fkey"
+            columns: ["accounts_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_accounts_contact_id_fkey"
+            columns: ["accounts_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_artist_id_fkey"
             columns: ["artist_id"]
@@ -319,6 +345,13 @@ export type Database = {
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bookings_terms_template"
+            columns: ["terms_template_id"]
+            isOneToOne: false
+            referencedRelation: "terms_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -493,6 +526,50 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emails_queue: {
+        Row: {
+          approved_to_send: boolean | null
+          booking_id: string | null
+          created_at: string | null
+          email_body: string | null
+          email_subject: string | null
+          id: string
+          recipient_type: string | null
+          sent: boolean | null
+          sent_at: string | null
+        }
+        Insert: {
+          approved_to_send?: boolean | null
+          booking_id?: string | null
+          created_at?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          recipient_type?: string | null
+          sent?: boolean | null
+          sent_at?: string | null
+        }
+        Update: {
+          approved_to_send?: boolean | null
+          booking_id?: string | null
+          created_at?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          recipient_type?: string | null
+          sent?: boolean | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_queue_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -728,6 +805,33 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+        }
+        Relationships: []
+      }
+      terms_templates: {
+        Row: {
+          active: boolean | null
+          body_html: string | null
+          category: string | null
+          id: string
+          last_updated: string | null
+          template_name: string
+        }
+        Insert: {
+          active?: boolean | null
+          body_html?: string | null
+          category?: string | null
+          id?: string
+          last_updated?: string | null
+          template_name: string
+        }
+        Update: {
+          active?: boolean | null
+          body_html?: string | null
+          category?: string | null
+          id?: string
+          last_updated?: string | null
+          template_name?: string
         }
         Relationships: []
       }
