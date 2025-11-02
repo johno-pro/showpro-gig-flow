@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText } from "lucide-react";
+import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -19,6 +19,7 @@ const navigation = [
   { name: "Departments", href: "/departments", icon: Briefcase },
   { name: "Payments", href: "/payments", icon: DollarSign },
   { name: "Remittance", href: "/remittance", icon: Receipt },
+  { name: "Invoices", href: "/invoices", icon: FileSpreadsheet },
   { name: "Emails Queue", href: "/emails-queue", icon: Mail },
   { name: "Terms Library", href: "/terms-library", icon: ScrollText },
   { name: "Invoice Batches", href: "/invoice-batches", icon: FileStack },
