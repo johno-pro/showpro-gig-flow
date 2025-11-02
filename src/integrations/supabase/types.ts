@@ -110,85 +110,130 @@ export type Database = {
         Row: {
           artist_fee: number | null
           artist_id: string | null
+          artist_status: Database["public"]["Enums"]["booking_status"] | null
           balance_paid: boolean | null
           booking_date: string
+          buy_fee: number | null
+          client_contact_name: string | null
           client_fee: number | null
           client_id: string
+          client_status: Database["public"]["Enums"]["booking_status"] | null
+          commission_percent: number | null
           commission_rate: number | null
           contact_id: string | null
           created_at: string | null
           deposit_amount: number | null
           deposit_paid: boolean | null
+          description: string | null
           end_time: string | null
           fee_model: Database["public"]["Enums"]["fee_model"] | null
+          financial_type: Database["public"]["Enums"]["financial_mode"] | null
+          finish_date: string | null
+          finish_time: string | null
           id: string
           invoiced: boolean | null
           job_code: string | null
+          location_contact_name: string | null
           location_id: string | null
           notes: string | null
+          profit_percent: number | null
+          sell_fee: number | null
           series_id: string | null
+          start_date: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["booking_status"] | null
+          supplier_contact_name: string | null
           supplier_id: string | null
           team_id: string | null
           updated_at: string | null
           vat_applicable: boolean | null
+          vat_rate: number | null
           venue_id: string | null
         }
         Insert: {
           artist_fee?: number | null
           artist_id?: string | null
+          artist_status?: Database["public"]["Enums"]["booking_status"] | null
           balance_paid?: boolean | null
           booking_date: string
+          buy_fee?: number | null
+          client_contact_name?: string | null
           client_fee?: number | null
           client_id: string
+          client_status?: Database["public"]["Enums"]["booking_status"] | null
+          commission_percent?: number | null
           commission_rate?: number | null
           contact_id?: string | null
           created_at?: string | null
           deposit_amount?: number | null
           deposit_paid?: boolean | null
+          description?: string | null
           end_time?: string | null
           fee_model?: Database["public"]["Enums"]["fee_model"] | null
+          financial_type?: Database["public"]["Enums"]["financial_mode"] | null
+          finish_date?: string | null
+          finish_time?: string | null
           id?: string
           invoiced?: boolean | null
           job_code?: string | null
+          location_contact_name?: string | null
           location_id?: string | null
           notes?: string | null
+          profit_percent?: number | null
+          sell_fee?: number | null
           series_id?: string | null
+          start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
+          supplier_contact_name?: string | null
           supplier_id?: string | null
           team_id?: string | null
           updated_at?: string | null
           vat_applicable?: boolean | null
+          vat_rate?: number | null
           venue_id?: string | null
         }
         Update: {
           artist_fee?: number | null
           artist_id?: string | null
+          artist_status?: Database["public"]["Enums"]["booking_status"] | null
           balance_paid?: boolean | null
           booking_date?: string
+          buy_fee?: number | null
+          client_contact_name?: string | null
           client_fee?: number | null
           client_id?: string
+          client_status?: Database["public"]["Enums"]["booking_status"] | null
+          commission_percent?: number | null
           commission_rate?: number | null
           contact_id?: string | null
           created_at?: string | null
           deposit_amount?: number | null
           deposit_paid?: boolean | null
+          description?: string | null
           end_time?: string | null
           fee_model?: Database["public"]["Enums"]["fee_model"] | null
+          financial_type?: Database["public"]["Enums"]["financial_mode"] | null
+          finish_date?: string | null
+          finish_time?: string | null
           id?: string
           invoiced?: boolean | null
           job_code?: string | null
+          location_contact_name?: string | null
           location_id?: string | null
           notes?: string | null
+          profit_percent?: number | null
+          sell_fee?: number | null
           series_id?: string | null
+          start_date?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
+          supplier_contact_name?: string | null
           supplier_id?: string | null
           team_id?: string | null
           updated_at?: string | null
           vat_applicable?: boolean | null
+          vat_rate?: number | null
           venue_id?: string | null
         }
         Relationships: [
@@ -921,6 +966,7 @@ export type Database = {
       app_role: "admin" | "manager" | "artist"
       booking_status: "enquiry" | "pencil" | "confirmed" | "cancelled"
       fee_model: "commission" | "buy_sell"
+      financial_mode: "commission" | "third_party"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1051,6 +1097,7 @@ export const Constants = {
       app_role: ["admin", "manager", "artist"],
       booking_status: ["enquiry", "pencil", "confirmed", "cancelled"],
       fee_model: ["commission", "buy_sell"],
+      financial_mode: ["commission", "third_party"],
     },
   },
 } as const
