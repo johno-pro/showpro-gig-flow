@@ -19,6 +19,14 @@ export default function Auth() {
 
   // Check if user is arriving from password reset email
   useEffect(() => {
+    // Check URL hash for password recovery
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery') {
+      setShowUpdatePassword(true);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowUpdatePassword(true);
@@ -28,11 +36,12 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Redirect if already logged in
-  if (user) {
-    navigate("/");
-    return null;
-  }
+  // Don't redirect if updating password
+  useEffect(() => {
+    if (user && !showUpdatePassword) {
+      navigate("/");
+    }
+  }, [user, showUpdatePassword, navigate]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
