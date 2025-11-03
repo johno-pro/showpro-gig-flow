@@ -1,14 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, ShieldAlert } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { z } from "zod";
+
+// File size limit: 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+// Validation schemas
+const clientSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  address: z.string().max(1000).optional().nullable(),
+});
+
+const venueSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  notes: z.string().max(2000).optional().nullable(),
+  location_id: z.string().uuid().optional().nullable(),
+});
+
+const artistSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  act_type: z.string().max(100).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  email: z.string().email().max(255).optional().or(z.literal('')).nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+const locationSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  address: z.string().max(1000).optional().nullable(),
+  map_link_url: z.string().url().max(500).optional().or(z.literal('')).nullable(),
+});
+
+const contactSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  title: z.string().max(100).optional().nullable(),
+  email: z.string().email().max(255).optional().or(z.literal('')).nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  client_id: z.string().uuid(),
+});
 
 export default function DataImport() {
+  const { user } = useAuth();
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [bookingFile, setBookingFile] = useState<File | null>(null);
@@ -24,6 +65,41 @@ export default function DataImport() {
     bookingsUpdated: number;
     errors: string[];
   } | null>(null);
+
+  // Check if user has admin or manager role
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (!user) {
+        setHasPermission(false);
+        return;
+      }
+
+      try {
+        const { data: roles, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        const hasAccess = roles?.some(r => r.role === 'admin' || r.role === 'manager');
+        setHasPermission(hasAccess || false);
+      } catch (error) {
+        setHasPermission(false);
+      }
+    };
+
+    checkPermission();
+  }, [user]);
+
+  // Validate file size
+  const validateFileSize = (file: File): boolean => {
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`File "${file.name}" exceeds maximum size of 5MB`);
+      return false;
+    }
+    return true;
+  };
 
   const parseCSV = (text: string): string[][] => {
     const lines = text.split('\n');
@@ -63,11 +139,18 @@ export default function DataImport() {
       if (!locationName) continue;
 
       try {
+        // Validate location data
+        const validatedLocation = locationSchema.parse({
+          name: locationName,
+          address: address || null,
+          map_link_url: mapLinkUrl || null,
+        });
+
         // Check if location exists
         const { data: existingLocation } = await supabase
           .from("locations")
           .select("id")
-          .eq("name", locationName)
+          .eq("name", validatedLocation.name)
           .maybeSingle();
 
         let locationId = existingLocation?.id;
@@ -77,9 +160,9 @@ export default function DataImport() {
           const { data: newLocation, error: locationError } = await supabase
             .from("locations")
             .insert({
-              name: locationName,
-              address: address || null,
-              map_link_url: mapLinkUrl || null,
+              name: validatedLocation.name,
+              address: validatedLocation.address,
+              map_link_url: validatedLocation.map_link_url,
             })
             .select("id")
             .single();
@@ -92,8 +175,8 @@ export default function DataImport() {
           const { error: updateError } = await supabase
             .from("locations")
             .update({
-              address: address || null,
-              map_link_url: mapLinkUrl || null,
+              address: validatedLocation.address,
+              map_link_url: validatedLocation.map_link_url,
             })
             .eq("id", existingLocation.id);
 
@@ -102,29 +185,38 @@ export default function DataImport() {
 
         // Create or link venue if venue name provided
         if (venueName && locationId) {
+          const validatedVenue = venueSchema.parse({
+            name: venueName,
+            location_id: locationId,
+            notes: null,
+          });
+
           const { data: existingVenue } = await supabase
             .from("venues")
             .select("id")
-            .eq("name", venueName)
+            .eq("name", validatedVenue.name)
             .maybeSingle();
 
           if (!existingVenue) {
-            await supabase
-              .from("venues")
-              .insert({
-                name: venueName,
-                location_id: locationId,
-              });
+            await supabase.from("venues").insert({
+              name: validatedVenue.name,
+              location_id: validatedVenue.location_id,
+              notes: validatedVenue.notes,
+            });
           } else {
             // Update venue's location if it exists
             await supabase
               .from("venues")
-              .update({ location_id: locationId })
+              .update({ location_id: validatedVenue.location_id })
               .eq("id", existingVenue.id);
           }
         }
       } catch (error: any) {
-        console.error(`Error importing location ${locationName}:`, error.message);
+        // Safe error logging - no sensitive data exposed
+        if (error instanceof z.ZodError) {
+          toast.error(`Invalid location data format`);
+        }
+        // Don't expose database internals
       }
     }
 
@@ -156,11 +248,17 @@ export default function DataImport() {
       }
 
       try {
+        // Validate client data
+        const validatedClient = clientSchema.parse({
+          name: companyName,
+          address: address || null,
+        });
+
         const { data, error } = await supabase
           .from('clients')
           .insert({
-            name: companyName,
-            address: address || null,
+            name: validatedClient.name,
+            address: validatedClient.address,
           })
           .select('id, name')
           .single();
@@ -172,7 +270,9 @@ export default function DataImport() {
           imported++;
         }
       } catch (error: any) {
-        console.error(`Error importing client ${companyName}:`, error.message);
+        if (error instanceof z.ZodError) {
+          toast.error(`Invalid client data format`);
+        }
       }
     }
 
@@ -205,19 +305,28 @@ export default function DataImport() {
       const clientId = clientMap.get(companyName);
 
       try {
+        // Validate venue data
+        const validatedVenue = venueSchema.parse({
+          name: venueName,
+          location_id: clientId || null,
+          notes: [town, address].filter(Boolean).join(', ') || null,
+        });
+
         const { error } = await supabase
           .from('venues')
           .insert({
-            name: venueName,
-            location_id: clientId || null,
-            notes: [town, address].filter(Boolean).join(', ') || null,
+            name: validatedVenue.name,
+            location_id: validatedVenue.location_id,
+            notes: validatedVenue.notes,
           });
 
         if (error) throw error;
         existingNames.add(venueName.toLowerCase().trim());
         imported++;
       } catch (error: any) {
-        console.error(`Error importing venue ${venueName}:`, error.message);
+        if (error instanceof z.ZodError) {
+          toast.error(`Invalid venue data format`);
+        }
       }
     }
 
@@ -249,21 +358,32 @@ export default function DataImport() {
       }
 
       try {
+        // Validate artist data
+        const validatedArtist = artistSchema.parse({
+          name: fullName,
+          act_type: contactType || null,
+          phone: phone || null,
+          email: email || null,
+          notes: org ? `Organization: ${org}` : null,
+        });
+
         const { error } = await supabase
           .from('artists')
           .insert({
-            name: fullName,
-            act_type: contactType || null,
-            phone: phone || null,
-            email: email || null,
-            notes: org ? `Organization: ${org}` : null,
+            name: validatedArtist.name,
+            act_type: validatedArtist.act_type,
+            phone: validatedArtist.phone,
+            email: validatedArtist.email,
+            notes: validatedArtist.notes,
           });
 
         if (error) throw error;
         existingNames.add(fullName.toLowerCase().trim());
         imported++;
       } catch (error: any) {
-        console.error(`Error importing artist ${fullName}:`, error.message);
+        if (error instanceof z.ZodError) {
+          toast.error(`Invalid artist data format`);
+        }
       }
     }
 
@@ -330,20 +450,31 @@ export default function DataImport() {
 
           if (existingContact) continue;
 
+          // Validate contact data
+          const validatedContact = contactSchema.parse({
+            name: name,
+            title: field.title,
+            email: email,
+            phone: phone,
+            client_id: clientId,
+          });
+
           const { error } = await supabase
             .from('contacts')
             .insert({
-              name: name,
-              title: field.title,
-              email: email,
-              phone: phone,
-              client_id: clientId,
+              name: validatedContact.name,
+              title: validatedContact.title,
+              email: validatedContact.email,
+              phone: validatedContact.phone,
+              client_id: validatedContact.client_id,
             });
 
           if (error) throw error;
           imported++;
         } catch (error: any) {
-          console.error(`Error importing contact for ${companyName}:`, error.message);
+          if (error instanceof z.ZodError) {
+            // Skip invalid contacts silently
+          }
         }
       }
     }
@@ -377,8 +508,6 @@ export default function DataImport() {
     // Fetch existing booking job codes to avoid duplicates
     const { data: existingBookings } = await supabase.from('bookings').select('job_code');
     const existingJobCodes = new Set(existingBookings?.map(b => b.job_code).filter(Boolean) || []);
-
-    console.log(`Found ${clientMap.size} clients, ${locationMap.size} locations, ${artistMap.size} artists`);
 
     for (const row of dataRows) {
       try {
@@ -415,10 +544,9 @@ export default function DataImport() {
             if (!clientError && newClient) {
               clientId = newClient.id;
               clientMap.set(clientName.toLowerCase().trim(), newClient.id);
-              console.log(`Created new client: ${clientName}`);
             }
           } catch (e) {
-            console.log(`Could not create client: ${clientName}`);
+            // Client creation failed - will skip booking
           }
         }
         
@@ -426,7 +554,6 @@ export default function DataImport() {
         if (!clientId) {
           missingClients.add(clientName || 'Unknown');
           skipped++;
-          console.warn(`Skipping booking - missing client: ${clientName}`);
           continue;
         }
         
@@ -448,10 +575,9 @@ export default function DataImport() {
             if (!locationError && newLocation) {
               locationId = newLocation.id;
               locationMap.set(locationName.toLowerCase().trim(), newLocation.id);
-              console.log(`Created new location: ${locationName}`);
             }
           } catch (e) {
-            console.log(`Could not create location: ${locationName}`);
+            // Location creation failed
           }
         }
         
@@ -473,9 +599,7 @@ export default function DataImport() {
             
             if (!updateError) {
               updated++;
-              console.log(`Updated booking ${jobCode} with location: ${locationName}`);
             } else {
-              console.error(`Error updating booking ${jobCode}:`, updateError.message);
               skipped++;
             }
           } else {
@@ -506,12 +630,8 @@ export default function DataImport() {
         imported++;
       } catch (error: any) {
         skipped++;
-        console.error(`Error importing booking:`, error.message);
+        // Silently skip invalid bookings
       }
-    }
-
-    if (skipped > 0) {
-      console.warn(`Skipped ${skipped} bookings. Missing clients: ${Array.from(missingClients).join(', ')}`);
     }
 
     return { imported, skipped, updated };
@@ -635,7 +755,31 @@ export default function DataImport() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Card>
+      {hasPermission === null ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p>Checking permissions...</p>
+          </CardContent>
+        </Card>
+      ) : hasPermission === false ? (
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <ShieldAlert className="w-12 h-12 text-destructive" />
+              <div>
+                <h3 className="font-semibold text-lg">Access Restricted</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Only administrators and managers can access the data import feature.
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Please contact your system administrator if you need access.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="w-6 h-6" />
@@ -664,7 +808,15 @@ export default function DataImport() {
               id="location-csv"
               type="file"
               accept=".csv"
-              onChange={(e) => setLocationFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && validateFileSize(file)) {
+                  setLocationFile(file);
+                } else {
+                  setLocationFile(null);
+                  e.target.value = '';
+                }
+              }}
               disabled={importing}
             />
             <p className="text-xs text-muted-foreground">
@@ -678,7 +830,15 @@ export default function DataImport() {
               id="booking-csv"
               type="file"
               accept=".csv"
-              onChange={(e) => setBookingFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && validateFileSize(file)) {
+                  setBookingFile(file);
+                } else {
+                  setBookingFile(null);
+                  e.target.value = '';
+                }
+              }}
               disabled={importing}
             />
             <p className="text-xs text-muted-foreground">
@@ -744,6 +904,7 @@ export default function DataImport() {
           </Button>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
