@@ -169,16 +169,16 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-subtle p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-subtle p-4 py-8">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
-              <Calendar className="h-8 w-8 text-white" />
+        <div className="mb-4 text-center">
+          <div className="mb-3 flex justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
+              <Calendar className="h-6 w-6 text-white" />
             </div>
           </div>
-          <h1 className="mb-2 text-3xl font-bold">ShowPro</h1>
-          <p className="text-muted-foreground">Entertainment Booking System</p>
+          <h1 className="mb-1 text-2xl font-bold">ShowPro</h1>
+          <p className="text-sm text-muted-foreground">Entertainment Booking System</p>
         </div>
 
         <Card>
@@ -285,14 +285,16 @@ export default function Auth() {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="w-full"
-                      onClick={() => setShowResetPassword(true)}
-                    >
-                      Forgot Password?
-                    </Button>
+                    <div className="text-center pt-2">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-primary underline"
+                        onClick={() => setShowResetPassword(true)}
+                      >
+                        Forgot Password?
+                      </Button>
+                    </div>
                   </form>
                 </TabsContent>
               <TabsContent value="signup">
