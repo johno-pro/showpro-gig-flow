@@ -212,11 +212,9 @@ export default function DataImport() {
           }
         }
       } catch (error: any) {
-        // Safe error logging - no sensitive data exposed
         if (error instanceof z.ZodError) {
           toast.error(`Invalid location data format`);
         }
-        // Don't expose database internals
       }
     }
 
@@ -271,7 +269,7 @@ export default function DataImport() {
         }
       } catch (error: any) {
         if (error instanceof z.ZodError) {
-          toast.error(`Invalid client data format`);
+          toast.error("Invalid client data format");
         }
       }
     }
@@ -325,7 +323,7 @@ export default function DataImport() {
         imported++;
       } catch (error: any) {
         if (error instanceof z.ZodError) {
-          toast.error(`Invalid venue data format`);
+          toast.error("Invalid venue data format");
         }
       }
     }
@@ -382,7 +380,7 @@ export default function DataImport() {
         imported++;
       } catch (error: any) {
         if (error instanceof z.ZodError) {
-          toast.error(`Invalid artist data format`);
+          toast.error("Invalid artist data format");
         }
       }
     }
@@ -728,7 +726,7 @@ export default function DataImport() {
             toast.success(`Bookings: ${messages.join(', ')}`);
           }
         } catch (e) {
-          console.log('No bookings CSV file found in public folder');
+          // No bookings CSV file in public folder
         }
       }
 

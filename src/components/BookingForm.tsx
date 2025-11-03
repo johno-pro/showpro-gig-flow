@@ -103,7 +103,6 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       setClients(clientsRes.data || []);
     } catch (error) {
       toast.error("Failed to load form data");
-      console.error(error);
     }
   };
 
@@ -118,7 +117,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       if (error) throw error;
       setLocations(data || []);
     } catch (error) {
-      console.error(error);
+      toast.error("Failed to load locations");
     }
   };
 
@@ -133,7 +132,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       if (error) throw error;
       setVenues(data || []);
     } catch (error) {
-      console.error(error);
+      toast.error("Failed to load venues");
     }
   };
 
@@ -157,7 +156,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         form.setValue("client_fee", data.client_fee?.toString() || "");
       }
     } catch (error) {
-      console.error("Error fetching artist's last booking:", error);
+      // Error fetching artist's last booking - continue without auto-fill
     }
   };
 
@@ -202,7 +201,6 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       }
     } catch (error) {
       toast.error("Failed to load booking");
-      console.error(error);
     }
   };
 
@@ -247,8 +245,7 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
 
       onSuccess?.();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save booking");
-      console.error(error);
+      toast.error("Failed to save booking");
     } finally {
       setLoading(false);
     }
