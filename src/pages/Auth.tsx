@@ -221,6 +221,14 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Updating password..." : "Update Password"}
                 </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShowUpdatePassword(false)}
+                >
+                  Back to Sign In
+                </Button>
               </form>
             ) : showResetPassword ? (
               <form onSubmit={handleResetPassword} className="space-y-4">
