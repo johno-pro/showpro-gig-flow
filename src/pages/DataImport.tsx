@@ -18,6 +18,7 @@ export default function DataImport() {
     venues: number;
     artists: number;
     locations: number;
+    contacts: number;
     bookings: number;
     bookingsSkipped: number;
     bookingsUpdated: number;
@@ -269,6 +270,87 @@ export default function DataImport() {
     return imported;
   };
 
+  const importContacts = async (csvData: string[][], clientMap: Map<string, string>): Promise<number> => {
+    let imported = 0;
+
+    // Skip header rows and empty rows
+    const dataRows = csvData.filter((row, idx) => idx > 0 && row[1]?.trim());
+
+    for (const row of dataRows) {
+      const companyName = row[1]?.trim();
+      
+      if (!companyName || companyName === 'VENUE is CLIENT') continue;
+
+      const clientId = clientMap.get(companyName);
+      if (!clientId) continue;
+
+      // Extract contact information from columns:
+      // [5] Contact - Accounts
+      // [6] Contact - Entertainments 1  
+      // [7] Contact - Entertainments 2
+      // [8] Contact - Emergency Number
+      
+      const contactFields = [
+        { raw: row[5]?.trim(), title: 'Accounts Contact' },
+        { raw: row[6]?.trim(), title: 'Entertainment Contact 1' },
+        { raw: row[7]?.trim(), title: 'Entertainment Contact 2' },
+        { raw: row[8]?.trim(), title: 'Emergency Contact' }
+      ];
+
+      for (const field of contactFields) {
+        if (!field.raw || field.raw === 'Tel - Email') continue;
+
+        // Parse contact info - format might be "Name - Email - Phone" or variations
+        const parts = field.raw.split('-').map(p => p.trim());
+        
+        let name = parts[0] || field.title;
+        let email = null;
+        let phone = null;
+
+        // Try to identify email and phone from parts
+        for (const part of parts) {
+          if (part.includes('@')) {
+            email = part;
+          } else if (/^[\d\s\(\)\+\-]+$/.test(part) && part.length > 5) {
+            phone = part;
+          }
+        }
+
+        // Skip if no meaningful data
+        if (!name || name === 'Tel' || name === 'Email') continue;
+
+        try {
+          // Check if similar contact already exists for this client
+          const { data: existingContact } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('title', field.title)
+            .maybeSingle();
+
+          if (existingContact) continue;
+
+          const { error } = await supabase
+            .from('contacts')
+            .insert({
+              name: name,
+              title: field.title,
+              email: email,
+              phone: phone,
+              client_id: clientId,
+            });
+
+          if (error) throw error;
+          imported++;
+        } catch (error: any) {
+          console.error(`Error importing contact for ${companyName}:`, error.message);
+        }
+      }
+    }
+
+    return imported;
+  };
+
   const importBookings = async (csvData: string[][]): Promise<{ imported: number; skipped: number; updated: number }> => {
     let imported = 0;
     let skipped = 0;
@@ -470,8 +552,14 @@ export default function DataImport() {
       const venuesData = parseCSV(venuesCSV);
       const venuesCount = await importVenues(venuesData, clientMap);
       
-      setProgress(65);
+      setProgress(60);
       toast.success(`Imported ${venuesCount} venues`);
+
+      // Import Contacts from CLIENTS.csv
+      const contactsCount = await importContacts(clientsData, clientMap);
+      
+      setProgress(70);
+      toast.success(`Imported ${contactsCount} contacts`);
 
       // Import Artists
       const artistsCSV = await fetch('/ARTISTS_AS_OF_16-10-25.csv').then(r => r.text());
@@ -531,6 +619,7 @@ export default function DataImport() {
         venues: venuesCount,
         artists: artistsCount,
         locations: locationsCount,
+        contacts: contactsCount,
         bookings: bookingsCount,
         bookingsSkipped: bookingsSkipped,
         bookingsUpdated: bookingsUpdated,
@@ -562,7 +651,7 @@ export default function DataImport() {
               This will import data from the uploaded CSV files:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm">
-              <li>CLIENTS.csv → clients table</li>
+              <li>CLIENTS.csv → clients table + contacts</li>
               <li>VENUES.csv → venues table (linked to clients)</li>
               <li>ARTISTS_AS_OF_16-10-25.csv → artists table</li>
               <li>BOOKINGS.csv → bookings table (if available)</li>
@@ -618,6 +707,7 @@ export default function DataImport() {
                 <p>✓ {results.venues} venues imported</p>
                 <p>✓ {results.artists} artists imported</p>
                 <p>✓ {results.locations} locations imported</p>
+                <p>✓ {results.contacts} contacts imported</p>
                 <p>
                   ✓ {results.bookings} bookings imported
                   {results.bookingsUpdated > 0 && (
