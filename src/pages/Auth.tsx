@@ -181,10 +181,10 @@ export default function Auth() {
           <p className="text-sm text-muted-foreground">Entertainment Booking System</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome</CardTitle>
-            <CardDescription>
+        <Card className="max-h-[calc(100vh-180px)] overflow-y-auto">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">Welcome</CardTitle>
+            <CardDescription className="text-sm">
               {showUpdatePassword
                 ? "Enter your new password"
                 : showResetPassword 
@@ -192,7 +192,7 @@ export default function Auth() {
                 : "Sign in to your account or create a new one"}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             {showUpdatePassword ? (
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div className="space-y-2">
@@ -261,8 +261,8 @@ export default function Auth() {
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                 </TabsList>
                 <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
+                  <form onSubmit={handleSignIn} className="space-y-3">
+                    <div className="space-y-1.5">
                       <Label htmlFor="signin-email">Email</Label>
                       <Input
                         id="signin-email"
@@ -272,7 +272,7 @@ export default function Auth() {
                         required
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="signin-password">Password</Label>
                       <Input
                         id="signin-password"
@@ -285,11 +285,11 @@ export default function Auth() {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
-                    <div className="text-center pt-2">
+                    <div className="text-center">
                       <Button
                         type="button"
                         variant="link"
-                        className="text-primary underline"
+                        className="text-primary underline h-auto py-1"
                         onClick={() => setShowResetPassword(true)}
                       >
                         Forgot Password?
