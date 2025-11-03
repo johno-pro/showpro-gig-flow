@@ -38,16 +38,29 @@ export default function Clients() {
     try {
       const { data, error } = await supabase
         .from("clients")
-        .select(`
-          *,
-          locations:locations(count),
-          venues:venues(count)
-        `)
+        .select("*")
         .order("name");
 
       if (error) throw error;
-      setClients(data || []);
-      setFilteredClients(data || []);
+      
+      // Get counts for locations and venues
+      const clientsWithCounts = await Promise.all(
+        (data || []).map(async (client) => {
+          const [{ count: locationsCount }, { count: venuesCount }] = await Promise.all([
+            supabase.from("locations").select("*", { count: "exact", head: true }).eq("client_id", client.id),
+            supabase.from("venues").select("*", { count: "exact", head: true }).eq("location_id", client.id),
+          ]);
+          
+          return {
+            ...client,
+            locations_count: locationsCount || 0,
+            venues_count: venuesCount || 0,
+          };
+        })
+      );
+      
+      setClients(clientsWithCounts);
+      setFilteredClients(clientsWithCounts);
     } catch (error: any) {
       toast.error("Failed to fetch clients");
       console.error("Error:", error);
@@ -125,9 +138,9 @@ export default function Clients() {
                       {client.address || "No address"}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{client.locations?.[0]?.count || 0} locations</span>
+                      <span>{client.locations_count || 0} locations</span>
                       <span>•</span>
-                      <span>{client.venues?.[0]?.count || 0} venues</span>
+                      <span>{client.venues_count || 0} venues</span>
                     </div>
                   </div>
                   <Button
