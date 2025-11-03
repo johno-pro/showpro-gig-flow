@@ -24,7 +24,7 @@ export default function TermsLibrary() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     category: "",
-    active: ""
+    active: "all"
   });
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function TermsLibrary() {
       if (filters.category) {
         query = query.ilike("category", `%${filters.category}%`);
       }
-      if (filters.active !== "") {
+      if (filters.active !== "all") {
         query = query.eq("active", filters.active === "true");
       }
 
@@ -140,7 +140,7 @@ export default function TermsLibrary() {
               <SelectValue placeholder="Active status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="true">Active</SelectItem>
               <SelectItem value="false">Inactive</SelectItem>
             </SelectContent>

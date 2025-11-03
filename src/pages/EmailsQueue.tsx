@@ -29,9 +29,9 @@ export default function EmailsQueue() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState({
-    recipient_type: "",
-    approved_to_send: "",
-    sent: ""
+    recipient_type: "all",
+    approved_to_send: "all",
+    sent: "all"
   });
   const navigate = useNavigate();
 
@@ -47,13 +47,13 @@ export default function EmailsQueue() {
         .select("*, bookings!emails_queue_booking_id_fkey(description)")
         .order("created_at", { ascending: false });
 
-      if (filters.recipient_type) {
+      if (filters.recipient_type !== "all") {
         query = query.eq("recipient_type", filters.recipient_type);
       }
-      if (filters.approved_to_send !== "") {
+      if (filters.approved_to_send !== "all") {
         query = query.eq("approved_to_send", filters.approved_to_send === "true");
       }
-      if (filters.sent !== "") {
+      if (filters.sent !== "all") {
         query = query.eq("sent", filters.sent === "true");
       }
 
@@ -157,7 +157,7 @@ export default function EmailsQueue() {
               <SelectValue placeholder="Recipient Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="artist">Artist</SelectItem>
               <SelectItem value="client">Client</SelectItem>
             </SelectContent>
@@ -171,7 +171,7 @@ export default function EmailsQueue() {
               <SelectValue placeholder="Approved status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="true">Approved</SelectItem>
               <SelectItem value="false">Not Approved</SelectItem>
             </SelectContent>
@@ -185,7 +185,7 @@ export default function EmailsQueue() {
               <SelectValue placeholder="Sent status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="true">Sent</SelectItem>
               <SelectItem value="false">Not Sent</SelectItem>
             </SelectContent>
