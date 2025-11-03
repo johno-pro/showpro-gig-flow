@@ -1142,6 +1142,28 @@ export type Database = {
           },
         ]
       }
+      showpro_summary: {
+        Row: {
+          active_bookings: number | null
+          confirmed_bookings: number | null
+          generated_at: string | null
+          last_artist_update: string | null
+          last_booking_update: string | null
+          last_client_update: string | null
+          last_email_update: string | null
+          last_supplier_update: string | null
+          outstanding_balance_value: number | null
+          queued_emails: number | null
+          sent_emails: number | null
+          total_artists: number | null
+          total_bookings: number | null
+          total_clients: number | null
+          total_suppliers: number | null
+          unpaid_balances: number | null
+          unpaid_deposits: number | null
+        }
+        Relationships: []
+      }
       suppliers_basic: {
         Row: {
           address: string | null
@@ -1176,6 +1198,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "manager" | "artist"

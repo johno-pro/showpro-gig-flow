@@ -40,6 +40,25 @@ export default function Auth() {
     setIsLoading(false);
   };
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 10) {
+      return "Password must be at least 10 characters";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/[a-z]/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return "Password must contain at least one special character";
+    }
+    return null;
+  };
+
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -49,8 +68,15 @@ export default function Auth() {
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      toast.error(passwordError);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!email.includes('@')) {
+      toast.error("Please enter a valid email address");
       setIsLoading(false);
       return;
     }
@@ -149,6 +175,9 @@ export default function Auth() {
                       placeholder="••••••••"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be 10+ characters with uppercase, lowercase, number, and special character
+                    </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating account..." : "Create Account"}

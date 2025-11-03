@@ -70,14 +70,33 @@ export default function EmailsQueue() {
 
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
-      // Validate length constraints
-      if (field === "email_subject" && value && value.length > 200) {
-        toast.error("Subject must be 200 characters or less");
-        return;
+      // Validate email subject to prevent header injection
+      if (field === "email_subject" && typeof value === "string") {
+        if (value.length > 200) {
+          toast.error("Subject must be 200 characters or less");
+          return;
+        }
+        if (/[\r\n]/.test(value)) {
+          toast.error("Email subject cannot contain line breaks");
+          return;
+        }
+        if (/\b(bcc|cc|to|from):/i.test(value)) {
+          toast.error("Email headers not allowed in subject");
+          return;
+        }
       }
-      if (field === "email_body" && value && value.length > 10000) {
-        toast.error("Body must be 10,000 characters or less");
-        return;
+
+      // Validate email body
+      if (field === "email_body" && typeof value === "string") {
+        if (value.length > 10000) {
+          toast.error("Body must be 10,000 characters or less");
+          return;
+        }
+        // Check for header injection in the first 200 characters
+        if (/\b(bcc|cc|to|from):/i.test(value.substring(0, 200))) {
+          toast.error("Email headers not allowed at start of body");
+          return;
+        }
       }
 
       const { error } = await supabase
