@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Edit, ExternalLink } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, addWeeks, isSameDay, isSameMonth, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,12 +34,15 @@ interface Booking {
 }
 
 export default function Diary() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [artists, setArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -170,6 +176,7 @@ export default function Diary() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div
+                          onClick={() => setSelectedBooking(booking)}
                           className={cn(
                             "text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-opacity",
                             getStatusColor(booking.artist_status || booking.status, booking.placeholder)
@@ -179,20 +186,20 @@ export default function Diary() {
                             {booking.artists?.name || "TBA"}
                           </div>
                           <div className="truncate text-[10px]">
-                            {booking.locations?.name}
+                            @ {booking.locations?.name}
                           </div>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-sm">
                         <div className="space-y-1">
-                          <div className="font-bold">{booking.artists?.name || "TBA"}</div>
+                          <div className="font-bold">{booking.artists?.name || "TBA"} @ {booking.locations?.name}</div>
                           <div>Client: {booking.clients?.name}</div>
-                          <div>Location: {booking.locations?.name}</div>
                           {booking.venues && <div>Venue: {booking.venues.name}</div>}
                           <div>Time: {booking.start_time} - {booking.finish_time}</div>
                           <div>Status: {booking.artist_status || booking.status}</div>
                           {booking.sell_fee && <div>Fee: £{booking.sell_fee}</div>}
                           {booking.notes && <div className="text-muted-foreground text-xs">{booking.notes}</div>}
+                          <div className="text-xs text-primary mt-2">Click to view details</div>
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -234,26 +241,27 @@ export default function Diary() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div
+                            onClick={() => setSelectedBooking(booking)}
                             className={cn(
                               "text-sm p-2 rounded border cursor-pointer hover:opacity-80 transition-opacity",
                               getStatusColor(booking.artist_status || booking.status, booking.placeholder)
                             )}
                           >
                             <div className="font-medium">{booking.artists?.name || "TBA"}</div>
-                            <div className="text-xs">{booking.locations?.name}</div>
+                            <div className="text-xs">@ {booking.locations?.name}</div>
                             <div className="text-xs">{booking.start_time}</div>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-sm">
                           <div className="space-y-1">
-                            <div className="font-bold">{booking.artists?.name || "TBA"}</div>
+                            <div className="font-bold">{booking.artists?.name || "TBA"} @ {booking.locations?.name}</div>
                             <div>Client: {booking.clients?.name}</div>
-                            <div>Location: {booking.locations?.name}</div>
                             {booking.venues && <div>Venue: {booking.venues.name}</div>}
                             <div>Time: {booking.start_time} - {booking.finish_time}</div>
                             <div>Status: {booking.artist_status || booking.status}</div>
                             {booking.sell_fee && <div>Fee: £{booking.sell_fee}</div>}
                             {booking.notes && <div className="text-muted-foreground text-xs">{booking.notes}</div>}
+                            <div className="text-xs text-primary mt-2">Click to view details</div>
                           </div>
                         </TooltipContent>
                       </Tooltip>
@@ -271,7 +279,7 @@ export default function Diary() {
   const renderDayView = () => {
     const dayBookings = getBookingsForDate(currentDate);
     
-    // Group by location
+    // Group by location and show all locations
     const bookingsByLocation = locations.map((location) => ({
       location,
       bookings: dayBookings.filter((b) => b.locations?.id === location.id),
@@ -287,8 +295,8 @@ export default function Diary() {
               </CardHeader>
               <CardContent>
                 {locationBookings.length === 0 ? (
-                  <div className="p-4 border-2 border-dashed border-destructive/50 rounded-lg bg-destructive/10 text-center text-destructive">
-                    No bookings - Available slot
+                  <div className="p-4 border-2 border-dashed border-destructive/50 rounded-lg bg-destructive/10 text-center text-destructive font-semibold">
+                    🔴 No bookings - Available slot
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -297,6 +305,7 @@ export default function Diary() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div
+                              onClick={() => setSelectedBooking(booking)}
                               className={cn(
                                 "p-3 rounded-lg border-2 cursor-pointer hover:opacity-80 transition-opacity",
                                 getStatusColor(booking.artist_status || booking.status, booking.placeholder)
@@ -304,7 +313,7 @@ export default function Diary() {
                             >
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <div className="font-semibold">{booking.artists?.name || "TBA"}</div>
+                                  <div className="font-semibold">{booking.artists?.name || "TBA"} @ {location.name}</div>
                                   <div className="text-sm">{booking.clients?.name}</div>
                                   <div className="text-sm">{booking.start_time} - {booking.finish_time}</div>
                                 </div>
@@ -314,14 +323,14 @@ export default function Diary() {
                           </TooltipTrigger>
                           <TooltipContent className="max-w-sm">
                             <div className="space-y-1">
-                              <div className="font-bold">{booking.artists?.name || "TBA"}</div>
+                              <div className="font-bold">{booking.artists?.name || "TBA"} @ {booking.locations?.name}</div>
                               <div>Client: {booking.clients?.name}</div>
-                              <div>Location: {booking.locations?.name}</div>
                               {booking.venues && <div>Venue: {booking.venues.name}</div>}
                               <div>Time: {booking.start_time} - {booking.finish_time}</div>
                               <div>Status: {booking.artist_status || booking.status}</div>
                               {booking.sell_fee && <div>Fee: £{booking.sell_fee}</div>}
                               {booking.notes && <div className="text-muted-foreground text-xs">{booking.notes}</div>}
+                              <div className="text-xs text-primary mt-2">Click to view details</div>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -342,69 +351,247 @@ export default function Diary() {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Diary</h1>
-          <p className="text-muted-foreground">Booking calendar and schedule overview</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setViewMode("month")} className={viewMode === "month" ? "bg-primary text-primary-foreground" : ""}>
-            Month
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setViewMode("week")} className={viewMode === "week" ? "bg-primary text-primary-foreground" : ""}>
-            Week
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setViewMode("day")} className={viewMode === "day" ? "bg-primary text-primary-foreground" : ""}>
-            Day
-          </Button>
-        </div>
-      </div>
-
-      <Card className="flex-1 flex flex-col">
-        <CardHeader className="border-b">
-          <div className="flex items-center justify-between">
-            <Button variant="outline" size="icon" onClick={() => navigateDate("prev")}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              <CardTitle>
-                {viewMode === "month" && format(currentDate, "MMMM yyyy")}
-                {viewMode === "week" && `Week of ${format(startOfWeek(currentDate), "MMM d, yyyy")}`}
-                {viewMode === "day" && format(currentDate, "EEEE, MMMM d, yyyy")}
-              </CardTitle>
+    <div className="flex h-full gap-4">
+      {/* Sidebar */}
+      {showSidebar && (
+        <Card className="w-80 flex-shrink-0 overflow-auto">
+          <CardHeader>
+            <CardTitle className="text-lg">Navigation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* View Mode Selector */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">View Mode</label>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  variant={viewMode === "month" ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setViewMode("month")}
+                  className="w-full justify-start"
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Month View
+                </Button>
+                <Button 
+                  variant={viewMode === "week" ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setViewMode("week")}
+                  className="w-full justify-start"
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Week View
+                </Button>
+                <Button 
+                  variant={viewMode === "day" ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setViewMode("day")}
+                  className="w-full justify-start"
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Day View
+                </Button>
+              </div>
             </div>
-            <Button variant="outline" size="icon" onClick={() => navigateDate("next")}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="flex-1 p-4 overflow-auto">
-          {viewMode === "month" && renderMonthView()}
-          {viewMode === "week" && renderWeekView()}
-          {viewMode === "day" && renderDayView()}
-        </CardContent>
-      </Card>
 
-      <div className="flex items-center gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-success/20 border border-success"></div>
-          <span>Confirmed</span>
+            {/* Date Picker */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Jump to Date</label>
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                onSelect={(date) => date && setCurrentDate(date)}
+                className="rounded-md border"
+              />
+            </div>
+
+            {/* Quick Navigation */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Quick Jump</label>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => setCurrentDate(new Date())}
+              >
+                Today
+              </Button>
+            </div>
+
+            {/* Legend */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Legend</label>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-success/20 border border-success"></div>
+                  <span>Confirmed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-warning/20 border border-warning"></div>
+                  <span>Pencilled</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-muted border border-muted-foreground line-through"></div>
+                  <span>Cancelled</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-destructive/20 border border-destructive"></div>
+                  <span>Unbooked Slot</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="space-y-2 pt-4 border-t">
+              <label className="text-sm font-medium">Statistics</label>
+              <div className="text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Bookings:</span>
+                  <span className="font-medium">{bookings.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Locations:</span>
+                  <span className="font-medium">{locations.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Artists:</span>
+                  <span className="font-medium">{artists.length}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col space-y-4 min-w-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Diary</h1>
+            <p className="text-muted-foreground">Booking calendar and schedule overview</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowSidebar(!showSidebar)}
+          >
+            {showSidebar ? "Hide" : "Show"} Sidebar
+          </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-warning/20 border border-warning"></div>
-          <span>Pencilled</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-muted border border-muted-foreground line-through"></div>
-          <span>Cancelled</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-destructive/20 border border-destructive"></div>
-          <span>Unbooked Slot</span>
-        </div>
+
+        <Card className="flex-1 flex flex-col min-h-0">
+          <CardHeader className="border-b flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <Button variant="outline" size="icon" onClick={() => navigateDate("prev")}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5" />
+                <CardTitle>
+                  {viewMode === "month" && format(currentDate, "MMMM yyyy")}
+                  {viewMode === "week" && `Week of ${format(startOfWeek(currentDate), "MMM d, yyyy")}`}
+                  {viewMode === "day" && format(currentDate, "EEEE, MMMM d, yyyy")}
+                </CardTitle>
+              </div>
+              <Button variant="outline" size="icon" onClick={() => navigateDate("next")}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 p-4 overflow-auto">
+            {viewMode === "month" && renderMonthView()}
+            {viewMode === "week" && renderWeekView()}
+            {viewMode === "day" && renderDayView()}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Booking Details Modal */}
+      <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Booking Details
+            </DialogTitle>
+            <DialogDescription>
+              View and manage booking information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBooking && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Artist</label>
+                  <p className="font-semibold">{selectedBooking.artists?.name || "TBA"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <div>
+                    <Badge className={cn(getStatusColor(selectedBooking.artist_status || selectedBooking.status, selectedBooking.placeholder))}>
+                      {selectedBooking.artist_status || selectedBooking.status}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Client</label>
+                  <p>{selectedBooking.clients?.name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Location</label>
+                  <p>{selectedBooking.locations?.name}</p>
+                </div>
+                {selectedBooking.venues && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Venue</label>
+                    <p>{selectedBooking.venues.name}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Date</label>
+                  <p>{format(parseISO(selectedBooking.start_date), "EEEE, MMMM d, yyyy")}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Time</label>
+                  <p>{selectedBooking.start_time} - {selectedBooking.finish_time}</p>
+                </div>
+                {selectedBooking.sell_fee && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Fee</label>
+                    <p className="font-semibold">£{selectedBooking.sell_fee}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedBooking.notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                  <p className="text-sm mt-1">{selectedBooking.notes}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  onClick={() => {
+                    navigate(`/bookings/${selectedBooking.id}`);
+                    setSelectedBooking(null);
+                  }}
+                  className="flex-1"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Full Details
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setSelectedBooking(null)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
