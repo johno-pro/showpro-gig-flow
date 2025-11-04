@@ -29,6 +29,7 @@ export type Database = {
           sell_fee: number | null
           supplier_id: string | null
           updated_at: string | null
+          user_id: string | null
           vat_rate: number | null
         }
         Insert: {
@@ -45,6 +46,7 @@ export type Database = {
           sell_fee?: number | null
           supplier_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
           vat_rate?: number | null
         }
         Update: {
@@ -61,6 +63,7 @@ export type Database = {
           sell_fee?: number | null
           supplier_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
           vat_rate?: number | null
         }
         Relationships: [
