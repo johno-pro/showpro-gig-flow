@@ -17,39 +17,51 @@ export type Database = {
       artists: {
         Row: {
           act_type: string | null
+          buy_fee: number | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
+          invoice_upload_url: string | null
           name: string
           notes: string | null
           phone: string | null
+          sell_fee: number | null
           supplier_id: string | null
           updated_at: string | null
+          vat_rate: number | null
         }
         Insert: {
           act_type?: string | null
+          buy_fee?: number | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          invoice_upload_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          sell_fee?: number | null
           supplier_id?: string | null
           updated_at?: string | null
+          vat_rate?: number | null
         }
         Update: {
           act_type?: string | null
+          buy_fee?: number | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          invoice_upload_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          sell_fee?: number | null
           supplier_id?: string | null
           updated_at?: string | null
+          vat_rate?: number | null
         }
         Relationships: [
           {
@@ -109,6 +121,7 @@ export type Database = {
       bookings: {
         Row: {
           accounts_contact_id: string | null
+          arrival_time: string | null
           artist_fee: number | null
           artist_id: string | null
           artist_status: Database["public"]["Enums"]["booking_status"] | null
@@ -121,6 +134,7 @@ export type Database = {
           client_status: Database["public"]["Enums"]["booking_status"] | null
           commission_percent: number | null
           commission_rate: number | null
+          confirmation_link: string | null
           contact_id: string | null
           created_at: string | null
           deposit_amount: number | null
@@ -132,11 +146,14 @@ export type Database = {
           finish_date: string | null
           finish_time: string | null
           id: string
+          invoice_status: string | null
           invoiced: boolean | null
           job_code: string | null
           location_contact_name: string | null
           location_id: string | null
           notes: string | null
+          performance_times: string | null
+          placeholder: boolean | null
           profit_percent: number | null
           remittance_date: string | null
           remittance_received: boolean | null
@@ -151,11 +168,14 @@ export type Database = {
           terms_template_id: string | null
           updated_at: string | null
           vat_applicable: boolean | null
+          vat_in: number | null
+          vat_out: number | null
           vat_rate: number | null
           venue_id: string | null
         }
         Insert: {
           accounts_contact_id?: string | null
+          arrival_time?: string | null
           artist_fee?: number | null
           artist_id?: string | null
           artist_status?: Database["public"]["Enums"]["booking_status"] | null
@@ -168,6 +188,7 @@ export type Database = {
           client_status?: Database["public"]["Enums"]["booking_status"] | null
           commission_percent?: number | null
           commission_rate?: number | null
+          confirmation_link?: string | null
           contact_id?: string | null
           created_at?: string | null
           deposit_amount?: number | null
@@ -179,11 +200,14 @@ export type Database = {
           finish_date?: string | null
           finish_time?: string | null
           id?: string
+          invoice_status?: string | null
           invoiced?: boolean | null
           job_code?: string | null
           location_contact_name?: string | null
           location_id?: string | null
           notes?: string | null
+          performance_times?: string | null
+          placeholder?: boolean | null
           profit_percent?: number | null
           remittance_date?: string | null
           remittance_received?: boolean | null
@@ -198,11 +222,14 @@ export type Database = {
           terms_template_id?: string | null
           updated_at?: string | null
           vat_applicable?: boolean | null
+          vat_in?: number | null
+          vat_out?: number | null
           vat_rate?: number | null
           venue_id?: string | null
         }
         Update: {
           accounts_contact_id?: string | null
+          arrival_time?: string | null
           artist_fee?: number | null
           artist_id?: string | null
           artist_status?: Database["public"]["Enums"]["booking_status"] | null
@@ -215,6 +242,7 @@ export type Database = {
           client_status?: Database["public"]["Enums"]["booking_status"] | null
           commission_percent?: number | null
           commission_rate?: number | null
+          confirmation_link?: string | null
           contact_id?: string | null
           created_at?: string | null
           deposit_amount?: number | null
@@ -226,11 +254,14 @@ export type Database = {
           finish_date?: string | null
           finish_time?: string | null
           id?: string
+          invoice_status?: string | null
           invoiced?: boolean | null
           job_code?: string | null
           location_contact_name?: string | null
           location_id?: string | null
           notes?: string | null
+          performance_times?: string | null
+          placeholder?: boolean | null
           profit_percent?: number | null
           remittance_date?: string | null
           remittance_received?: boolean | null
@@ -245,6 +276,8 @@ export type Database = {
           terms_template_id?: string | null
           updated_at?: string | null
           vat_applicable?: boolean | null
+          vat_in?: number | null
+          vat_out?: number | null
           vat_rate?: number | null
           venue_id?: string | null
         }
@@ -362,13 +395,16 @@ export type Database = {
           accounts_contact_name: string | null
           accounts_contact_phone: string | null
           address: string | null
+          billing_address: string | null
           code: string | null
           company_number: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string | null
+          email_targets: Json | null
           id: string
+          invoice_preferences: string | null
           name: string
           notes: string | null
           updated_at: string | null
@@ -379,13 +415,16 @@ export type Database = {
           accounts_contact_name?: string | null
           accounts_contact_phone?: string | null
           address?: string | null
+          billing_address?: string | null
           code?: string | null
           company_number?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string | null
+          email_targets?: Json | null
           id?: string
+          invoice_preferences?: string | null
           name: string
           notes?: string | null
           updated_at?: string | null
@@ -396,13 +435,16 @@ export type Database = {
           accounts_contact_name?: string | null
           accounts_contact_phone?: string | null
           address?: string | null
+          billing_address?: string | null
           code?: string | null
           company_number?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string | null
+          email_targets?: Json | null
           id?: string
+          invoice_preferences?: string | null
           name?: string
           notes?: string | null
           updated_at?: string | null
@@ -533,36 +575,45 @@ export type Database = {
       emails_queue: {
         Row: {
           approved_to_send: boolean | null
+          attachments: Json | null
           booking_id: string | null
           created_at: string | null
           email_body: string | null
           email_subject: string | null
           id: string
           recipient_type: string | null
+          recipients: Json | null
           sent: boolean | null
           sent_at: string | null
+          type: string | null
         }
         Insert: {
           approved_to_send?: boolean | null
+          attachments?: Json | null
           booking_id?: string | null
           created_at?: string | null
           email_body?: string | null
           email_subject?: string | null
           id?: string
           recipient_type?: string | null
+          recipients?: Json | null
           sent?: boolean | null
           sent_at?: string | null
+          type?: string | null
         }
         Update: {
           approved_to_send?: boolean | null
+          attachments?: Json | null
           booking_id?: string | null
           created_at?: string | null
           email_body?: string | null
           email_subject?: string | null
           id?: string
           recipient_type?: string | null
+          recipients?: Json | null
           sent?: boolean | null
           sent_at?: string | null
+          type?: string | null
         }
         Relationships: [
           {
@@ -625,12 +676,66 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          amount_due: number
+          artist_payment_link: string | null
+          booking_id: string
+          created_at: string | null
+          due_date: string
+          id: string
+          payment_link: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_due: number
+          artist_payment_link?: string | null
+          booking_id: string
+          created_at?: string | null
+          due_date: string
+          id?: string
+          payment_link?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_due?: number
+          artist_payment_link?: string | null
+          booking_id?: string
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          payment_link?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_public_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
           client_id: string | null
           created_at: string | null
           email: string | null
+          ents_contact_email: string | null
+          ents_contact_mobile: string | null
+          ents_contact_name: string | null
           id: string
           map_link_url: string | null
           name: string
@@ -638,12 +743,16 @@ export type Database = {
           phone: string | null
           postcode: string | null
           updated_at: string | null
+          upload_history: Json | null
         }
         Insert: {
           address?: string | null
           client_id?: string | null
           created_at?: string | null
           email?: string | null
+          ents_contact_email?: string | null
+          ents_contact_mobile?: string | null
+          ents_contact_name?: string | null
           id?: string
           map_link_url?: string | null
           name: string
@@ -651,12 +760,16 @@ export type Database = {
           phone?: string | null
           postcode?: string | null
           updated_at?: string | null
+          upload_history?: Json | null
         }
         Update: {
           address?: string | null
           client_id?: string | null
           created_at?: string | null
           email?: string | null
+          ents_contact_email?: string | null
+          ents_contact_mobile?: string | null
+          ents_contact_name?: string | null
           id?: string
           map_link_url?: string | null
           name?: string
@@ -664,6 +777,7 @@ export type Database = {
           phone?: string | null
           postcode?: string | null
           updated_at?: string | null
+          upload_history?: Json | null
         }
         Relationships: [
           {
@@ -678,27 +792,36 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          artist_portion: number | null
           booking_id: string
           created_at: string | null
           id: string
+          invoice_id: string | null
+          method: string | null
           notes: string | null
           payment_date: string | null
           payment_type: string | null
         }
         Insert: {
           amount: number
+          artist_portion?: number | null
           booking_id: string
           created_at?: string | null
           id?: string
+          invoice_id?: string | null
+          method?: string | null
           notes?: string | null
           payment_date?: string | null
           payment_type?: string | null
         }
         Update: {
           amount?: number
+          artist_portion?: number | null
           booking_id?: string
           created_at?: string | null
           id?: string
+          invoice_id?: string | null
+          method?: string | null
           notes?: string | null
           payment_date?: string | null
           payment_type?: string | null
@@ -716,6 +839,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings_public_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -1190,6 +1320,10 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_artist_profit: {
+        Args: { p_buy_fee: number; p_sell_fee: number }
+        Returns: number
+      }
       generate_job_code: { Args: never; Returns: string }
       has_role: {
         Args: {
