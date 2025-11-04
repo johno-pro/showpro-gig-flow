@@ -46,6 +46,7 @@ import BookingSeriesDetails from "./pages/BookingSeriesDetails";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
+import DataManagement from "./pages/DataManagement";
 import FixArtistLinks from "./pages/FixArtistLinks";
 import Diary from "./pages/Diary";
 
@@ -446,6 +447,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <DataImport />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/data-management"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DataManagement />
                   </Layout>
                 </ProtectedRoute>
               }
