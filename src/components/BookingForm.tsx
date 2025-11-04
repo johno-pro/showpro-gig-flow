@@ -42,6 +42,11 @@ const bookingFormSchema = z.object({
   deposit_paid: z.boolean(),
   balance_paid: z.boolean(),
   invoiced: z.boolean(),
+  arrival_time: z.string().optional(),
+  performance_times: z.string().optional(),
+  confirmation_link: z.string().optional(),
+  invoice_status: z.string().optional(),
+  placeholder: z.boolean(),
   notes: z.string().optional(),
 });
 
@@ -73,6 +78,11 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       deposit_paid: false,
       balance_paid: false,
       invoiced: false,
+      arrival_time: "",
+      performance_times: "",
+      confirmation_link: "",
+      invoice_status: "uninvoiced",
+      placeholder: false,
     },
   });
 
@@ -191,6 +201,11 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
           deposit_paid: data.deposit_paid,
           balance_paid: data.balance_paid,
           invoiced: data.invoiced,
+          arrival_time: data.arrival_time || "",
+          performance_times: data.performance_times || "",
+          confirmation_link: data.confirmation_link || "",
+          invoice_status: data.invoice_status || "uninvoiced",
+          placeholder: data.placeholder || false,
           notes: data.notes || "",
         });
 
@@ -225,6 +240,11 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         deposit_paid: values.deposit_paid,
         balance_paid: values.balance_paid,
         invoiced: values.invoiced,
+        arrival_time: values.arrival_time || null,
+        performance_times: values.performance_times || null,
+        confirmation_link: values.confirmation_link || null,
+        invoice_status: values.invoice_status || "uninvoiced",
+        placeholder: values.placeholder,
         notes: values.notes || null,
       };
 
@@ -590,6 +610,91 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="placeholder"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Placeholder (Red Hold)</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Additional Details</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="arrival_time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Arrival Time</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="performance_times"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Performance Times</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., 8:00pm - 11:00pm" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="invoice_status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invoice Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="uninvoiced">Uninvoiced</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmation_link"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirmation Link</FormLabel>
+                  <FormControl>
+                    <Input placeholder="URL to confirmation email/form" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

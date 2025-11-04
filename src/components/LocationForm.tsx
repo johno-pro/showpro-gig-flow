@@ -30,6 +30,9 @@ const locationFormSchema = z.object({
   postcode: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  ents_contact_name: z.string().optional(),
+  ents_contact_mobile: z.string().optional(),
+  ents_contact_email: z.string().email().optional().or(z.literal("")),
   notes: z.string().optional(),
 });
 
@@ -54,6 +57,9 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
       postcode: "",
       phone: "",
       email: "",
+      ents_contact_name: "",
+      ents_contact_mobile: "",
+      ents_contact_email: "",
       notes: "",
     },
   });
@@ -100,6 +106,9 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
           postcode: data.postcode || "",
           phone: data.phone || "",
           email: data.email || "",
+          ents_contact_name: data.ents_contact_name || "",
+          ents_contact_mobile: data.ents_contact_mobile || "",
+          ents_contact_email: data.ents_contact_email || "",
           notes: data.notes || "",
         });
       }
@@ -119,6 +128,9 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
         postcode: values.postcode || null,
         phone: values.phone || null,
         email: values.email || null,
+        ents_contact_name: values.ents_contact_name || null,
+        ents_contact_mobile: values.ents_contact_mobile || null,
+        ents_contact_email: values.ents_contact_email || null,
         notes: values.notes || null,
       };
 
@@ -230,6 +242,53 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
               </FormItem>
             )}
           />
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Entertainment Contact</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="ents_contact_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ents Contact Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Entertainment contact name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ents_contact_mobile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ents Contact Mobile</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Mobile number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ents_contact_email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ents Contact Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="ents@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <FormField

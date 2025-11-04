@@ -28,6 +28,8 @@ const clientFormSchema = z.object({
   accounts_contact_name: z.string().trim().max(100, "Accounts contact name must be less than 100 characters").optional(),
   accounts_contact_email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
   accounts_contact_phone: z.string().trim().max(20, "Phone must be less than 20 characters").optional(),
+  billing_address: z.string().trim().max(500, "Billing address must be less than 500 characters").optional(),
+  invoice_preferences: z.string().trim().optional(),
   notes: z.string().trim().max(1000, "Notes must be less than 1000 characters").optional(),
 });
 
@@ -56,6 +58,8 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
       accounts_contact_name: "",
       accounts_contact_email: "",
       accounts_contact_phone: "",
+      billing_address: "",
+      invoice_preferences: "",
       notes: "",
     },
   });
@@ -91,6 +95,8 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
           accounts_contact_name: data.accounts_contact_name || "",
           accounts_contact_email: data.accounts_contact_email || "",
           accounts_contact_phone: data.accounts_contact_phone || "",
+          billing_address: data.billing_address || "",
+          invoice_preferences: data.invoice_preferences || "",
           notes: data.notes || "",
         });
       }
@@ -115,6 +121,8 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
         accounts_contact_name: values.accounts_contact_name?.trim() || null,
         accounts_contact_email: values.accounts_contact_email?.trim() || null,
         accounts_contact_phone: values.accounts_contact_phone?.trim() || null,
+        billing_address: values.billing_address?.trim() || null,
+        invoice_preferences: values.invoice_preferences?.trim() || null,
         notes: values.notes?.trim() || null,
       };
 
@@ -306,6 +314,39 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
                   <FormLabel>Accounts Contact Phone</FormLabel>
                   <FormControl>
                     <Input placeholder="Accounts phone number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Billing Information</h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="billing_address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Billing Address</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Billing address (if different from company address)" className="min-h-[80px]" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="invoice_preferences"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invoice Preferences</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., PDF via email, monthly batch" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

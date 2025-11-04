@@ -30,6 +30,10 @@ const artistFormSchema = z.object({
   supplier_id: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
+  invoice_upload_url: z.string().optional(),
+  buy_fee: z.string().optional(),
+  sell_fee: z.string().optional(),
+  vat_rate: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -54,6 +58,10 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
       supplier_id: "",
       email: "",
       phone: "",
+      invoice_upload_url: "",
+      buy_fee: "",
+      sell_fee: "",
+      vat_rate: "20",
       notes: "",
     },
   });
@@ -99,6 +107,10 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
           supplier_id: data.supplier_id || "",
           email: data.email || "",
           phone: data.phone || "",
+          invoice_upload_url: data.invoice_upload_url || "",
+          buy_fee: data.buy_fee?.toString() || "",
+          sell_fee: data.sell_fee?.toString() || "",
+          vat_rate: data.vat_rate?.toString() || "20",
           notes: data.notes || "",
         });
       }
@@ -118,6 +130,10 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
         supplier_id: values.supplier_id || null,
         email: values.email || null,
         phone: values.phone || null,
+        invoice_upload_url: values.invoice_upload_url || null,
+        buy_fee: values.buy_fee ? parseFloat(values.buy_fee) : null,
+        sell_fee: values.sell_fee ? parseFloat(values.sell_fee) : null,
+        vat_rate: values.vat_rate ? parseFloat(values.vat_rate) : 20,
         notes: values.notes || null,
       };
 
@@ -243,7 +259,79 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="invoice_upload_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Invoice Upload URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="URL for invoice attachments" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="buy_fee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Buy Fee (£)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sell_fee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sell Fee (£)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="vat_rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>VAT Rate (%)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="20" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
+
+        {form.watch("buy_fee") && form.watch("sell_fee") && (
+          <div className="rounded-lg border p-4 bg-muted/50">
+            <div className="text-sm font-medium">Calculated Profit</div>
+            <div className="text-2xl font-bold">
+              {(() => {
+                const buyFee = parseFloat(form.watch("buy_fee") || "0");
+                const sellFee = parseFloat(form.watch("sell_fee") || "0");
+                if (buyFee > 0) {
+                  return ((sellFee - buyFee) / buyFee * 100).toFixed(2) + "%";
+                }
+                return "N/A";
+              })()}
+            </div>
+          </div>
+        )}
 
         <FormField
           control={form.control}
