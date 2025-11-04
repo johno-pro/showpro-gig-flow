@@ -47,6 +47,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import DataImport from "./pages/DataImport";
 import FixArtistLinks from "./pages/FixArtistLinks";
+import Diary from "./pages/Diary";
 
 const queryClient = new QueryClient();
 
@@ -455,6 +456,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <FixArtistLinks />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/diary"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Diary />
                   </Layout>
                 </ProtectedRoute>
               }

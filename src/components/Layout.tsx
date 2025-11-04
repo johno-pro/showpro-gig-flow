@@ -2,11 +2,12 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet } from "lucide-react";
+import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Diary", href: "/diary", icon: CalendarDays },
   { name: "Bookings", href: "/bookings", icon: Calendar },
   { name: "Booking Series", href: "/booking-series", icon: Repeat },
   { name: "Artists", href: "/artists", icon: Users },
