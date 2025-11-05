@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Download, Upload, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
+import { FieldMappingDialog } from "@/components/FieldMappingDialog";
 
 type TableName = "artists" | "clients" | "locations" | "venues" | "contacts" | "bookings" | "invoices" | "payments" | "suppliers" | "teams" | "departments" | "emails_queue";
 
@@ -85,6 +86,10 @@ export default function DataManagement() {
   const [importing, setImporting] = useState(false);
   const [selectedTable, setSelectedTable] = useState<TableName>("artists");
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvData, setCsvData] = useState<string[][]>([]);
+  const [fieldMapping, setFieldMapping] = useState<Record<string, string>>({});
 
   const convertToCSV = (data: any[], columns: string[]): string => {
     if (!data || data.length === 0) return "";
@@ -213,13 +218,12 @@ export default function DataManagement() {
     return result;
   };
 
-  const handleImport = async () => {
+  const handleStartImport = async () => {
     if (!importFile) {
       toast.error("Please select a file to import");
       return;
     }
 
-    setImporting(true);
     try {
       const text = await importFile.text();
       const rows = parseCSV(text);
@@ -231,6 +235,28 @@ export default function DataManagement() {
 
       const headers = rows[0];
       const dataRows = rows.slice(1);
+
+      // Store parsed data and show mapping dialog
+      setCsvHeaders(headers);
+      setCsvData(dataRows);
+      setShowMappingDialog(true);
+    } catch (error: any) {
+      console.error("Parse error:", error);
+      toast.error(`Failed to parse CSV: ${error.message}`);
+    }
+  };
+
+  const handleConfirmMapping = (mapping: Record<string, string>) => {
+    setFieldMapping(mapping);
+    setShowMappingDialog(false);
+    // Proceed with import
+    performImport(mapping);
+  };
+
+  const performImport = async (mapping: Record<string, string>) => {
+    setImporting(true);
+    try {
+      const dataRows = csvData;
       
       const tableConfig = TABLES.find(t => t.name === selectedTable);
       if (!tableConfig) {
@@ -238,39 +264,43 @@ export default function DataManagement() {
         return;
       }
 
-      // Prepare data for insertion
+      // Prepare data for insertion using the mapping
       const recordsToInsert = dataRows.map(row => {
         const record: any = {};
-        headers.forEach((header, index) => {
+        csvHeaders.forEach((csvHeader, index) => {
+          // Check if this CSV column is mapped to a database column
+          const dbColumn = mapping[csvHeader];
+          if (!dbColumn) return; // Skip unmapped columns
+
           const value = row[index];
           
           // Skip empty values
           if (value === "" || value === null || value === undefined) return;
           
           // Handle JSON fields
-          if (header === "email_targets" || header === "recipients" || header === "attachments" || header === "upload_history") {
+          if (dbColumn === "email_targets" || dbColumn === "recipients" || dbColumn === "attachments" || dbColumn === "upload_history") {
             try {
-              record[header] = JSON.parse(value);
+              record[dbColumn] = JSON.parse(value);
             } catch {
-              record[header] = [];
+              record[dbColumn] = [];
             }
             return;
           }
           
           // Handle boolean fields
-          if (header === "placeholder" || header === "approved_to_send" || header === "sent" || header === "vat_applicable" || header === "deposit_paid" || header === "balance_paid" || header === "invoiced" || header === "remittance_received") {
-            record[header] = value.toLowerCase() === "true" || value === "1";
+          if (dbColumn === "placeholder" || dbColumn === "approved_to_send" || dbColumn === "sent" || dbColumn === "vat_applicable" || dbColumn === "deposit_paid" || dbColumn === "balance_paid" || dbColumn === "invoiced" || dbColumn === "remittance_received") {
+            record[dbColumn] = value.toLowerCase() === "true" || value === "1";
             return;
           }
           
           // Handle numeric fields
-          if (header.includes("fee") || header.includes("amount") || header.includes("vat") || header.includes("rate") || header.includes("percent") || header === "capacity") {
+          if (dbColumn.includes("fee") || dbColumn.includes("amount") || dbColumn.includes("vat") || dbColumn.includes("rate") || dbColumn.includes("percent") || dbColumn === "capacity") {
             const num = parseFloat(value);
-            if (!isNaN(num)) record[header] = num;
+            if (!isNaN(num)) record[dbColumn] = num;
             return;
           }
           
-          record[header] = value;
+          record[dbColumn] = value;
         });
         
         return record;
@@ -302,6 +332,9 @@ export default function DataManagement() {
 
       toast.success(`Successfully imported ${imported} records into ${tableConfig.label}`);
       setImportFile(null);
+      setCsvHeaders([]);
+      setCsvData([]);
+      setFieldMapping({});
     } catch (error: any) {
       console.error("Import error:", error);
       toast.error(`Failed to import: ${error.message}`);
@@ -429,12 +462,12 @@ export default function DataManagement() {
               </div>
 
               <Button 
-                onClick={handleImport} 
+                onClick={handleStartImport} 
                 disabled={!importFile || importing}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {importing ? "Importing..." : "Import Data"}
+                {importing ? "Importing..." : "Map Fields & Import"}
               </Button>
             </CardContent>
           </Card>
@@ -458,6 +491,15 @@ export default function DataManagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <FieldMappingDialog
+        open={showMappingDialog}
+        onOpenChange={setShowMappingDialog}
+        csvHeaders={csvHeaders}
+        tableColumns={TABLES.find(t => t.name === selectedTable)?.columns || []}
+        tableName={TABLES.find(t => t.name === selectedTable)?.label || ""}
+        onConfirm={handleConfirmMapping}
+      />
     </div>
   );
 }
