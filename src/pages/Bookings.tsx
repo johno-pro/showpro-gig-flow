@@ -4,13 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, WrenchIcon } from "lucide-react";
+import { Plus, Calendar, WrenchIcon, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { EmailDialog } from "@/components/EmailDialog";
 
 export default function Bookings() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -108,23 +111,46 @@ export default function Bookings() {
                       )}
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log("Navigating to booking:", booking.id);
-                      navigate(`/bookings/${booking.id}`);
-                    }}
-                  >
-                    View Details
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBooking(booking);
+                        setEmailDialogOpen(true);
+                      }}
+                    >
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log("Navigating to booking:", booking.id);
+                        navigate(`/bookings/${booking.id}`);
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {selectedBooking && (
+        <EmailDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          booking={selectedBooking}
+        />
+      )}
     </div>
   );
 }
