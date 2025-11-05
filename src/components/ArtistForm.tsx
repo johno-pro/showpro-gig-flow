@@ -23,19 +23,20 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload, FileText, X } from "lucide-react";
+import { sanitizeText, sanitizeFileName } from "@/lib/sanitize";
 
 const artistFormSchema = z.object({
-  name: z.string().min(1, "Professional name is required"),
-  full_name: z.string().optional(),
-  act_type: z.string().optional(),
+  name: z.string().trim().min(1, "Professional name is required").max(200, "Name too long"),
+  full_name: z.string().trim().max(200, "Full name too long").optional(),
+  act_type: z.string().trim().max(100, "Act type too long").optional(),
   supplier_id: z.string().optional(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
+  email: z.string().trim().email("Invalid email").max(255, "Email too long").optional().or(z.literal("")),
+  phone: z.string().trim().max(20, "Phone too long").optional(),
   invoice_upload_url: z.string().optional(),
   buy_fee: z.string().optional(),
   sell_fee: z.string().optional(),
   vat_rate: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().trim().max(2000, "Notes too long").optional(),
 });
 
 type ArtistFormValues = z.infer<typeof artistFormSchema>;
@@ -126,7 +127,21 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
 
   const handleFileUpload = async (file: File): Promise<string | null> => {
     try {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Only PDF and image files (JPG, PNG) are allowed");
+        return null;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
+        return null;
+      }
+
       const fileExt = file.name.split('.').pop();
+      const sanitizedOriginalName = sanitizeFileName(file.name);
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${fileName}`;
 
@@ -162,17 +177,17 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
       }
 
       const artistData = {
-        name: values.name,
-        full_name: values.full_name || null,
-        act_type: values.act_type || null,
+        name: sanitizeText(values.name, 200),
+        full_name: values.full_name ? sanitizeText(values.full_name, 200) : null,
+        act_type: values.act_type ? sanitizeText(values.act_type, 100) : null,
         supplier_id: values.supplier_id || null,
-        email: values.email || null,
-        phone: values.phone || null,
+        email: values.email ? sanitizeText(values.email, 255) : null,
+        phone: values.phone ? sanitizeText(values.phone, 20) : null,
         invoice_upload_url: invoiceUrl,
         buy_fee: values.buy_fee ? parseFloat(values.buy_fee) : null,
         sell_fee: values.sell_fee ? parseFloat(values.sell_fee) : null,
         vat_rate: values.vat_rate ? parseFloat(values.vat_rate) : 20,
-        notes: values.notes || null,
+        notes: values.notes ? sanitizeText(values.notes, 2000) : null,
       };
 
       if (artistId) {

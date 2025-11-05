@@ -45,31 +45,38 @@ serve(async (req) => {
     const artistEmail = formData.get('artist_email') as string;
     const file = formData.get('file') as File;
 
-    console.log('Request data:', { artistId, artistEmail, fileName: file?.name });
-
+    // Validate file exists
     if (!file) {
+      console.error('No file uploaded');
       return new Response(
         JSON.stringify({ error: 'No file provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    // Validate file type (only PDF, JPEG, PNG)
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
     if (!allowedTypes.includes(file.type)) {
+      console.error(`Invalid file type: ${file.type}`);
       return new Response(
-        JSON.stringify({ error: 'Invalid file type. Only PDF and images are allowed' }),
+        JSON.stringify({ error: 'Invalid file type. Only PDF, JPEG, and PNG files are allowed.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      console.error(`File too large: ${file.size} bytes`);
       return new Response(
         JSON.stringify({ error: 'File size exceeds 10MB limit' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Sanitize file name to prevent path traversal
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    console.log('Request data:', { artistId, artistEmail, fileName: sanitizedFileName, fileSize: file.size });
 
     // Find artist by ID or email
     let artist;

@@ -12,6 +12,8 @@ import { z } from "zod";
 
 // File size limit: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// CSV row limit for security
+const MAX_CSV_ROWS = 1000;
 
 // Validation schemas
 const clientSchema = z.object({
@@ -103,6 +105,12 @@ export default function DataImport() {
 
   const parseCSV = (text: string): string[][] => {
     const lines = text.split('\n');
+    
+    // Security: Limit number of rows to prevent DoS
+    if (lines.length > MAX_CSV_ROWS) {
+      throw new Error(`CSV file exceeds maximum allowed rows (${MAX_CSV_ROWS}). File has ${lines.length} rows.`);
+    }
+    
     return lines.map(line => {
       const values: string[] = [];
       let current = '';

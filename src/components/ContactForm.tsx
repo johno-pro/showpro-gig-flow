@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { sanitizeText } from "@/lib/sanitize";
 
 const contactFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -181,16 +182,16 @@ export function ContactForm({ contactId, onSuccess, onCancel }: ContactFormProps
     setLoading(true);
     try {
       const contactData = {
-        name: values.name.trim(),
-        title: values.title?.trim() || null,
-        email: values.email?.trim() || null,
-        phone: values.phone?.trim() || null,
-        mobile: values.mobile?.trim() || null,
+        name: sanitizeText(values.name, 100),
+        title: values.title ? sanitizeText(values.title, 100) : null,
+        email: values.email ? sanitizeText(values.email, 255) : null,
+        phone: values.phone ? sanitizeText(values.phone, 20) : null,
+        mobile: values.mobile ? sanitizeText(values.mobile, 20) : null,
         client_id: values.client_id || null,
         location_id: values.location_id || null,
         department_id: values.department_id || null,
         supplier_id: values.supplier_id || null,
-        notes: values.notes?.trim() || null,
+        notes: values.notes ? sanitizeText(values.notes, 1000) : null,
       };
 
       if (contactId) {
