@@ -13,11 +13,31 @@ serve(async (req) => {
   }
 
   try {
+    // Verify webhook authentication
+    const authHeader = req.headers.get('Authorization');
+    const webhookSecret = Deno.env.get('ZAPIER_WEBHOOK_SECRET');
+    
+    if (!webhookSecret) {
+      console.error('ZAPIER_WEBHOOK_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Webhook authentication not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
+      console.warn('Unauthorized webhook access attempt');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid or missing authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Zapier webhook triggered');
+    console.log('Zapier webhook triggered - authenticated');
 
     // Parse the incoming request
     const formData = await req.formData();
