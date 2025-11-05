@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Trash2, User, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, User, Calendar, FileText, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { ArtistForm } from "@/components/ArtistForm";
 
@@ -274,6 +274,51 @@ export default function ArtistDetails() {
           </CardContent>
         </Card>
       </div>
+
+      {artist.invoice_upload_url && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Invoice Document
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Uploaded Invoice</p>
+                  <p className="text-sm text-muted-foreground">View or download the artist's invoice document</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(artist.invoice_upload_url, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = artist.invoice_upload_url;
+                    a.download = `invoice-${artist.name}`;
+                    a.click();
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {artist.notes && (
         <Card>

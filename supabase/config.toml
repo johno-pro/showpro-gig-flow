@@ -1,1 +1,4 @@
 project_id = "whazayczomsdlluhcnke"
+
+[functions.zapier-invoice-upload]
+verify_jwt = false

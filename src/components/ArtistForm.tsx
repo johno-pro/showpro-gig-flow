@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Upload, FileText, X } from "lucide-react";
 
 const artistFormSchema = z.object({
   name: z.string().min(1, "Professional name is required"),
@@ -48,6 +49,8 @@ interface ArtistFormProps {
 export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [existingInvoiceUrl, setExistingInvoiceUrl] = useState<string | null>(null);
 
   const form = useForm<ArtistFormValues>({
     resolver: zodResolver(artistFormSchema),
@@ -113,6 +116,7 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
           vat_rate: data.vat_rate?.toString() || "20",
           notes: data.notes || "",
         });
+        setExistingInvoiceUrl(data.invoice_upload_url);
       }
     } catch (error) {
       toast.error("Failed to load artist");
@@ -120,9 +124,43 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
     }
   };
 
+  const handleFileUpload = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('artist-invoices')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('artist-invoices')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error("Failed to upload file");
+      return null;
+    }
+  };
+
   const onSubmit = async (values: ArtistFormValues) => {
     setLoading(true);
     try {
+      let invoiceUrl = values.invoice_upload_url || null;
+
+      // Handle file upload if a new file is selected
+      if (uploadedFile) {
+        const uploadedUrl = await handleFileUpload(uploadedFile);
+        if (uploadedUrl) {
+          invoiceUrl = uploadedUrl;
+        }
+      }
+
       const artistData = {
         name: values.name,
         full_name: values.full_name || null,
@@ -130,7 +168,7 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
         supplier_id: values.supplier_id || null,
         email: values.email || null,
         phone: values.phone || null,
-        invoice_upload_url: values.invoice_upload_url || null,
+        invoice_upload_url: invoiceUrl,
         buy_fee: values.buy_fee ? parseFloat(values.buy_fee) : null,
         sell_fee: values.sell_fee ? parseFloat(values.sell_fee) : null,
         vat_rate: values.vat_rate ? parseFloat(values.vat_rate) : 20,
@@ -260,19 +298,74 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="invoice_upload_url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Invoice Upload URL</FormLabel>
-                <FormControl>
-                  <Input placeholder="URL for invoice attachments" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="col-span-2">
+            <FormItem>
+              <FormLabel>Invoice Upload</FormLabel>
+              <div className="space-y-2">
+                {existingInvoiceUrl && !uploadedFile && (
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm flex-1 truncate">{existingInvoiceUrl}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setExistingInvoiceUrl(null);
+                        form.setValue("invoice_upload_url", "");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                {uploadedFile && (
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm flex-1 truncate">{uploadedFile.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUploadedFile(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'application/pdf,image/jpeg,image/png,image/jpg';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast.error("File size must be less than 10MB");
+                            return;
+                          }
+                          setUploadedFile(file);
+                          setExistingInvoiceUrl(null);
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Invoice
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: PDF, JPG, PNG (max 10MB)
+                </p>
+              </div>
+            </FormItem>
+          </div>
 
           <FormField
             control={form.control}

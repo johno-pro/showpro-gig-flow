@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Users, Search } from "lucide-react";
+import { Plus, Users, Search, Zap, Copy, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function Artists() {
   const navigate = useNavigate();
@@ -14,6 +15,17 @@ export default function Artists() {
   const [filteredArtists, setFilteredArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showZapierInfo, setShowZapierInfo] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const zapierWebhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zapier-invoice-upload`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(zapierWebhookUrl);
+    setCopied(true);
+    toast.success("Webhook URL copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     fetchArtists();
@@ -79,6 +91,54 @@ export default function Artists() {
           New Artist
         </Button>
       </div>
+
+      {showZapierInfo && (
+        <Alert>
+          <Zap className="h-4 w-4" />
+          <AlertTitle className="flex items-center justify-between">
+            <span>Zapier Integration Available</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowZapierInfo(false)}
+            >
+              Dismiss
+            </Button>
+          </AlertTitle>
+          <AlertDescription>
+            <div className="space-y-3">
+              <p>Automate invoice uploads via email! Set up a Zapier workflow to forward invoice attachments directly to artist records.</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Webhook URL:</p>
+                <div className="flex gap-2">
+                  <code className="flex-1 p-2 bg-muted rounded text-xs break-all">
+                    {zapierWebhookUrl}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyToClipboard}
+                  >
+                    {copied ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">Required fields in Zapier:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li><code>file</code>: The invoice attachment (PDF, JPG, PNG)</li>
+                  <li><code>artist_id</code>: Artist UUID (required if email not provided)</li>
+                  <li><code>artist_email</code>: Artist email (required if ID not provided)</li>
+                </ul>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
