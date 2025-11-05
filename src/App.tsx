@@ -49,6 +49,7 @@ import DataImport from "./pages/DataImport";
 import DataManagement from "./pages/DataManagement";
 import FixArtistLinks from "./pages/FixArtistLinks";
 import Diary from "./pages/Diary";
+import JobExplorer from "./pages/JobExplorer";
 
 const queryClient = new QueryClient();
 
@@ -477,6 +478,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Diary />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/job-explorer"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <JobExplorer />
                   </Layout>
                 </ProtectedRoute>
               }
