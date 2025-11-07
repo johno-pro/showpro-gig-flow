@@ -51,6 +51,7 @@ import FixArtistLinks from "./pages/FixArtistLinks";
 import Diary from "./pages/Diary";
 import JobExplorer from "./pages/JobExplorer";
 import AdminUsers from "./pages/AdminUsers";
+import ProfileSettings from "./pages/ProfileSettings";
 
 const queryClient = new QueryClient();
 
@@ -499,6 +500,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <AdminUsers />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile-settings"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProfileSettings />
                   </Layout>
                 </ProtectedRoute>
               }

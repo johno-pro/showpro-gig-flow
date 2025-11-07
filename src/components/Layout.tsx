@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet, CalendarDays, Database, Search, Shield } from "lucide-react";
+import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet, CalendarDays, Database, Search, Shield, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -28,6 +28,7 @@ const navigation = [
   { name: "Import Data", href: "/import", icon: Upload },
   { name: "Data Management", href: "/data-management", icon: Database },
   { name: "User Management", href: "/admin/users", icon: Shield },
+  { name: "Profile Settings", href: "/profile-settings", icon: Settings },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
