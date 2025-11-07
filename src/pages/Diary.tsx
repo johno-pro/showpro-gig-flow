@@ -4,15 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Edit, ExternalLink } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, addWeeks, isSameDay, isSameMonth, parseISO } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, Edit, Eye } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, addMonths, addDays, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-type ViewMode = "month" | "week" | "day";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
 
 interface Booking {
   id: string;
@@ -20,39 +21,49 @@ interface Booking {
   start_time: string;
   finish_date: string;
   finish_time: string;
+  arrival_time?: string;
   status: string;
   artist_status: string;
   client_status: string;
   placeholder: boolean;
-  artists: { name: string } | null;
+  artists: { id: string; name: string } | null;
   clients: { name: string } | null;
   locations: { name: string; id: string } | null;
   venues: { name: string } | null;
   sell_fee: number;
   buy_fee: number;
   notes: string;
+  profit_percent: number;
+}
+
+interface Location {
+  id: string;
+  name: string;
+}
+
+interface Artist {
+  id: string;
+  name: string;
 }
 
 export default function Diary() {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [artists, setArtists] = useState<any[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [activeTab, setActiveTab] = useState("month");
 
   useEffect(() => {
     fetchData();
-  }, [currentDate, viewMode]);
+  }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from("bookings")
         .select(`
@@ -66,7 +77,6 @@ export default function Diary() {
 
       if (bookingsError) throw bookingsError;
 
-      // Fetch all locations
       const { data: locationsData, error: locationsError } = await supabase
         .from("locations")
         .select("id, name")
@@ -74,7 +84,6 @@ export default function Diary() {
 
       if (locationsError) throw locationsError;
 
-      // Fetch all artists
       const { data: artistsData, error: artistsError } = await supabase
         .from("artists")
         .select("id, name")
@@ -93,53 +102,49 @@ export default function Diary() {
     }
   };
 
-  const getDateRange = () => {
-    if (viewMode === "month") {
-      const start = startOfWeek(startOfMonth(currentDate));
-      const end = endOfWeek(endOfMonth(currentDate));
-      return { start, end };
-    } else if (viewMode === "week") {
-      const start = startOfWeek(currentDate);
-      const end = endOfWeek(currentDate);
-      return { start, end };
-    } else {
-      return { start: currentDate, end: currentDate };
-    }
-  };
-
-  const navigateDate = (direction: "prev" | "next") => {
-    if (viewMode === "month") {
-      setCurrentDate(addMonths(currentDate, direction === "next" ? 1 : -1));
-    } else if (viewMode === "week") {
-      setCurrentDate(addWeeks(currentDate, direction === "next" ? 1 : -1));
-    } else {
-      setCurrentDate(addDays(currentDate, direction === "next" ? 1 : -1));
-    }
-  };
-
   const getStatusColor = (status: string, placeholder: boolean) => {
-    if (placeholder) return "bg-destructive/20 border-destructive text-destructive";
+    if (placeholder) return { bg: "bg-destructive", text: "text-white", border: "border-destructive" };
     switch (status) {
       case "confirmed":
-        return "bg-success/20 border-success text-success";
+        return { bg: "bg-success", text: "text-white", border: "border-success" };
       case "pencil":
-        return "bg-warning/20 border-warning text-warning";
+        return { bg: "bg-warning", text: "text-warning-foreground", border: "border-warning" };
       case "cancelled":
-        return "bg-muted border-muted-foreground text-muted-foreground line-through";
+        return { bg: "bg-muted", text: "text-muted-foreground", border: "border-muted-foreground" };
       default:
-        return "bg-secondary border-border text-secondary-foreground";
+        return { bg: "bg-secondary", text: "text-secondary-foreground", border: "border-border" };
     }
   };
 
-  const getBookingsForDate = (date: Date) => {
-    return bookings.filter((booking) => {
-      const bookingDate = parseISO(booking.start_date);
-      return isSameDay(bookingDate, date);
+  const getCalendarEvents = () => {
+    return bookings.map((booking) => {
+      const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
+      return {
+        id: booking.id,
+        title: `${booking.artists?.name || "TBA"} @ ${booking.locations?.name || "TBA"}`,
+        start: `${booking.start_date}T${booking.start_time}`,
+        end: `${booking.finish_date}T${booking.finish_time}`,
+        backgroundColor: colors.bg.replace('bg-', 'hsl(var(--'),
+        borderColor: colors.border.replace('border-', 'hsl(var(--'),
+        textColor: colors.text.replace('text-', 'hsl(var(--'),
+        extendedProps: {
+          booking
+        }
+      };
     });
   };
 
-  const renderMonthView = () => {
-    const { start, end } = getDateRange();
+  const handleEventClick = (info: any) => {
+    setSelectedBooking(info.event.extendedProps.booking);
+  };
+
+  const navigateMonth = (direction: "prev" | "next") => {
+    setCurrentDate(addMonths(currentDate, direction === "next" ? 1 : -1));
+  };
+
+  const renderGridView = () => {
+    const start = startOfMonth(currentDate);
+    const end = endOfMonth(currentDate);
     const days = [];
     let day = start;
 
@@ -149,199 +154,124 @@ export default function Diary() {
     }
 
     return (
-      <div className="grid grid-cols-7 gap-2 flex-1">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName) => (
-          <div key={dayName} className="p-2 text-center font-semibold text-sm text-muted-foreground">
-            {dayName}
-          </div>
-        ))}
-        {days.map((day, idx) => {
-          const dayBookings = getBookingsForDate(day);
-          const isCurrentMonth = isSameMonth(day, currentDate);
-          
-          return (
-            <div
-              key={idx}
-              className={cn(
-                "min-h-[120px] border rounded-lg p-2 overflow-auto",
-                !isCurrentMonth && "bg-muted/50"
-              )}
-            >
-              <div className={cn("text-sm font-medium mb-1", !isCurrentMonth && "text-muted-foreground")}>
-                {format(day, "d")}
-              </div>
-              <div className="space-y-1">
-                {dayBookings.map((booking) => (
-                  <TooltipProvider key={booking.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          onClick={() => setSelectedBooking(booking)}
-                          className={cn(
-                            "text-xs p-1 rounded border cursor-pointer hover:opacity-80 transition-opacity",
-                            getStatusColor(booking.artist_status || booking.status, booking.placeholder)
-                          )}
-                        >
-                          <div className="font-medium truncate">
-                            {booking.artists?.name || "TBA"}
-                          </div>
-                          <div className="truncate text-[10px]">
-                            @ {booking.locations?.name}
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="bg-muted">
+              <th className="border p-2 sticky left-0 bg-muted z-10 min-w-[150px]">Artist / Location</th>
+              {days.map((d) => (
+                <th key={d.toISOString()} className="border p-2 min-w-[100px]">
+                  <div className="text-xs">{format(d, "EEE")}</div>
+                  <div className="font-bold">{format(d, "d")}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {/* Render rows for each artist */}
+            {artists.map((artist) => (
+              <tr key={`artist-${artist.id}`} className="hover:bg-muted/50">
+                <td className="border p-2 font-medium sticky left-0 bg-background z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    {artist.name}
+                  </div>
+                </td>
+                {days.map((day) => {
+                  const dayBookings = bookings.filter(
+                    (b) => b.artists?.id === artist.id && isSameDay(parseISO(b.start_date), day)
+                  );
+                  const hasBooking = dayBookings.length > 0;
+
+                  return (
+                    <td key={day.toISOString()} className="border p-1">
+                      {hasBooking ? (
                         <div className="space-y-1">
-                          <div className="font-bold">{booking.artists?.name || "TBA"} @ {booking.locations?.name}</div>
-                          <div>Client: {booking.clients?.name}</div>
-                          {booking.venues && <div>Venue: {booking.venues.name}</div>}
-                          <div>Time: {booking.start_time} - {booking.finish_time}</div>
-                          <div>Status: {booking.artist_status || booking.status}</div>
-                          {booking.sell_fee && <div>Fee: £{booking.sell_fee}</div>}
-                          {booking.notes && <div className="text-muted-foreground text-xs">{booking.notes}</div>}
-                          <div className="text-xs text-primary mt-2">Click to view details</div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const renderWeekView = () => {
-    const { start, end } = getDateRange();
-    const days = [];
-    let day = start;
-
-    while (day <= end) {
-      days.push(day);
-      day = addDays(day, 1);
-    }
-
-    return (
-      <div className="flex flex-col gap-4 flex-1">
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((day, idx) => {
-            const dayBookings = getBookingsForDate(day);
-            
-            return (
-              <div key={idx} className="flex flex-col">
-                <div className="p-2 text-center font-semibold border-b">
-                  <div className="text-sm">{format(day, "EEE")}</div>
-                  <div className="text-lg">{format(day, "d")}</div>
-                </div>
-                <div className="flex-1 border rounded-b-lg p-2 min-h-[300px] space-y-2 overflow-auto">
-                  {dayBookings.map((booking) => (
-                    <TooltipProvider key={booking.id}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            onClick={() => setSelectedBooking(booking)}
-                            className={cn(
-                              "text-sm p-2 rounded border cursor-pointer hover:opacity-80 transition-opacity",
-                              getStatusColor(booking.artist_status || booking.status, booking.placeholder)
-                            )}
-                          >
-                            <div className="font-medium">{booking.artists?.name || "TBA"}</div>
-                            <div className="text-xs">@ {booking.locations?.name}</div>
-                            <div className="text-xs">{booking.start_time}</div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm">
-                          <div className="space-y-1">
-                            <div className="font-bold">{booking.artists?.name || "TBA"} @ {booking.locations?.name}</div>
-                            <div>Client: {booking.clients?.name}</div>
-                            {booking.venues && <div>Venue: {booking.venues.name}</div>}
-                            <div>Time: {booking.start_time} - {booking.finish_time}</div>
-                            <div>Status: {booking.artist_status || booking.status}</div>
-                            {booking.sell_fee && <div>Fee: £{booking.sell_fee}</div>}
-                            {booking.notes && <div className="text-muted-foreground text-xs">{booking.notes}</div>}
-                            <div className="text-xs text-primary mt-2">Click to view details</div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderDayView = () => {
-    const dayBookings = getBookingsForDate(currentDate);
-    
-    // Group by location and show all locations
-    const bookingsByLocation = locations.map((location) => ({
-      location,
-      bookings: dayBookings.filter((b) => b.locations?.id === location.id),
-    }));
-
-    return (
-      <div className="flex-1 overflow-auto">
-        <div className="space-y-4">
-          {bookingsByLocation.map(({ location, bookings: locationBookings }) => (
-            <Card key={location.id}>
-              <CardHeader>
-                <CardTitle className="text-lg">{location.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {locationBookings.length === 0 ? (
-                  <div className="p-4 border-2 border-dashed border-destructive/50 rounded-lg bg-destructive/10 text-center text-destructive font-semibold">
-                    🔴 No bookings - Available slot
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {locationBookings.map((booking) => (
-                      <TooltipProvider key={booking.id}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              onClick={() => setSelectedBooking(booking)}
-                              className={cn(
-                                "p-3 rounded-lg border-2 cursor-pointer hover:opacity-80 transition-opacity",
-                                getStatusColor(booking.artist_status || booking.status, booking.placeholder)
-                              )}
-                            >
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="font-semibold">{booking.artists?.name || "TBA"} @ {location.name}</div>
-                                  <div className="text-sm">{booking.clients?.name}</div>
-                                  <div className="text-sm">{booking.start_time} - {booking.finish_time}</div>
-                                </div>
-                                <Badge variant="outline">{booking.artist_status || booking.status}</Badge>
+                          {dayBookings.map((booking) => {
+                            const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
+                            return (
+                              <div
+                                key={booking.id}
+                                onClick={() => setSelectedBooking(booking)}
+                                className={cn(
+                                  "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
+                                  colors.bg,
+                                  colors.text,
+                                  booking.artist_status === "cancelled" && "line-through"
+                                )}
+                              >
+                                <div className="font-bold truncate">{booking.locations?.name}</div>
+                                <div>{booking.start_time}</div>
                               </div>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm">
-                            <div className="space-y-1">
-                              <div className="font-bold">{booking.artists?.name || "TBA"} @ {booking.locations?.name}</div>
-                              <div>Client: {booking.clients?.name}</div>
-                              {booking.venues && <div>Venue: {booking.venues.name}</div>}
-                              <div>Time: {booking.start_time} - {booking.finish_time}</div>
-                              <div>Status: {booking.artist_status || booking.status}</div>
-                              {booking.sell_fee && <div>Fee: £{booking.sell_fee}</div>}
-                              {booking.notes && <div className="text-muted-foreground text-xs">{booking.notes}</div>}
-                              <div className="text-xs text-primary mt-2">Click to view details</div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ))}
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="h-full min-h-[40px] flex items-center justify-center">
+                          <span className="text-muted-foreground text-xs">—</span>
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            
+            {/* Separator row */}
+            <tr>
+              <td colSpan={days.length + 1} className="h-4 bg-muted"></td>
+            </tr>
+
+            {/* Render rows for each location */}
+            {locations.map((location) => (
+              <tr key={`location-${location.id}`} className="hover:bg-muted/50">
+                <td className="border p-2 font-medium sticky left-0 bg-background z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-secondary"></div>
+                    {location.name}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </td>
+                {days.map((day) => {
+                  const dayBookings = bookings.filter(
+                    (b) => b.locations?.id === location.id && isSameDay(parseISO(b.start_date), day)
+                  );
+                  const hasBooking = dayBookings.length > 0;
+
+                  return (
+                    <td key={day.toISOString()} className="border p-1">
+                      {hasBooking ? (
+                        <div className="space-y-1">
+                          {dayBookings.map((booking) => {
+                            const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
+                            return (
+                              <div
+                                key={booking.id}
+                                onClick={() => setSelectedBooking(booking)}
+                                className={cn(
+                                  "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
+                                  colors.bg,
+                                  colors.text,
+                                  booking.artist_status === "cancelled" && "line-through"
+                                )}
+                              >
+                                <div className="font-bold truncate">{booking.artists?.name || "TBA"}</div>
+                                <div>{booking.start_time}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="h-full min-h-[40px] flex items-center justify-center bg-destructive/10">
+                          <span className="text-destructive font-bold text-xs">🔴</span>
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -351,241 +281,211 @@ export default function Diary() {
   }
 
   return (
-    <div className="flex h-full gap-4">
-      {/* Sidebar */}
-      {showSidebar && (
-        <Card className="w-80 flex-shrink-0 overflow-auto">
-          <CardHeader>
-            <CardTitle className="text-lg">Navigation</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* View Mode Selector */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">View Mode</label>
-              <div className="flex flex-col gap-2">
-                <Button 
-                  variant={viewMode === "month" ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={() => setViewMode("month")}
-                  className="w-full justify-start"
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  Month View
-                </Button>
-                <Button 
-                  variant={viewMode === "week" ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={() => setViewMode("week")}
-                  className="w-full justify-start"
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  Week View
-                </Button>
-                <Button 
-                  variant={viewMode === "day" ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={() => setViewMode("day")}
-                  className="w-full justify-start"
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  Day View
-                </Button>
-              </div>
-            </div>
-
-            {/* Date Picker */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Jump to Date</label>
-              <Calendar
-                mode="single"
-                selected={currentDate}
-                onSelect={(date) => date && setCurrentDate(date)}
-                className="rounded-md border"
-              />
-            </div>
-
-            {/* Quick Navigation */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Quick Jump</label>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => setCurrentDate(new Date())}
-              >
-                Today
-              </Button>
-            </div>
-
-            {/* Legend */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Legend</label>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-success/20 border border-success"></div>
-                  <span>Confirmed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-warning/20 border border-warning"></div>
-                  <span>Pencilled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-muted border border-muted-foreground line-through"></div>
-                  <span>Cancelled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-destructive/20 border border-destructive"></div>
-                  <span>Unbooked Slot</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="space-y-2 pt-4 border-t">
-              <label className="text-sm font-medium">Statistics</label>
-              <div className="text-sm space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Bookings:</span>
-                  <span className="font-medium">{bookings.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Locations:</span>
-                  <span className="font-medium">{locations.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Artists:</span>
-                  <span className="font-medium">{artists.length}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col space-y-4 min-w-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Diary</h1>
-            <p className="text-muted-foreground">Booking calendar and schedule overview</p>
+    <div className="space-y-4 h-full flex flex-col">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Diary</h1>
+          <p className="text-muted-foreground">Manage your bookings calendar</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="text-lg font-semibold min-w-[150px] text-center">
+            {format(currentDate, "MMMM yyyy")}
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowSidebar(!showSidebar)}
-          >
-            {showSidebar ? "Hide" : "Show"} Sidebar
+          <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
+            Today
           </Button>
         </div>
-
-        <Card className="flex-1 flex flex-col min-h-0">
-          <CardHeader className="border-b flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="icon" onClick={() => navigateDate("prev")}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                <CardTitle>
-                  {viewMode === "month" && format(currentDate, "MMMM yyyy")}
-                  {viewMode === "week" && `Week of ${format(startOfWeek(currentDate), "MMM d, yyyy")}`}
-                  {viewMode === "day" && format(currentDate, "EEEE, MMMM d, yyyy")}
-                </CardTitle>
-              </div>
-              <Button variant="outline" size="icon" onClick={() => navigateDate("next")}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 p-4 overflow-auto">
-            {viewMode === "month" && renderMonthView()}
-            {viewMode === "week" && renderWeekView()}
-            {viewMode === "day" && renderDayView()}
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Booking Details Modal */}
+      {/* Legend */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-success"></div>
+              <span>Confirmed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-warning"></div>
+              <span>Pencilled</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-muted line-through"></div>
+              <span>Cancelled</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-destructive"></div>
+              <span>Placeholder</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-destructive font-bold text-lg">🔴</span>
+              <span>Unbooked slot (available)</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabs for different views */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="month">Month Calendar</TabsTrigger>
+          <TabsTrigger value="week">Week Calendar</TabsTrigger>
+          <TabsTrigger value="grid">Grid View</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="month" className="flex-1 mt-4">
+          <Card className="h-full">
+            <CardContent className="pt-6 h-full">
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                events={getCalendarEvents()}
+                eventClick={handleEventClick}
+                headerToolbar={false}
+                height="100%"
+                eventDisplay="block"
+                eventTimeFormat={{
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="week" className="flex-1 mt-4">
+          <Card className="h-full">
+            <CardContent className="pt-6 h-full">
+              <FullCalendar
+                plugins={[timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                events={getCalendarEvents()}
+                eventClick={handleEventClick}
+                headerToolbar={false}
+                height="100%"
+                slotMinTime="08:00:00"
+                slotMaxTime="24:00:00"
+                allDaySlot={false}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="grid" className="flex-1 mt-4">
+          <Card className="h-full overflow-auto">
+            <CardContent className="pt-6">
+              {renderGridView()}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Booking Details Dialog */}
       <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="h-5 w-5" />
-              Booking Details
-            </DialogTitle>
-            <DialogDescription>
-              View and manage booking information
-            </DialogDescription>
+            <DialogTitle>Booking Details</DialogTitle>
           </DialogHeader>
-          
           {selectedBooking && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Artist</label>
-                  <p className="font-semibold">{selectedBooking.artists?.name || "TBA"}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <div>
-                    <Badge className={cn(getStatusColor(selectedBooking.artist_status || selectedBooking.status, selectedBooking.placeholder))}>
-                      {selectedBooking.artist_status || selectedBooking.status}
-                    </Badge>
-                  </div>
+                  <p className="text-lg font-semibold">{selectedBooking.artists?.name || "TBA"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Client</label>
-                  <p>{selectedBooking.clients?.name}</p>
+                  <p className="text-lg font-semibold">{selectedBooking.clients?.name}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Location</label>
-                  <p>{selectedBooking.locations?.name}</p>
+                  <p className="text-lg font-semibold">{selectedBooking.locations?.name}</p>
                 </div>
                 {selectedBooking.venues && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Venue</label>
-                    <p>{selectedBooking.venues.name}</p>
-                  </div>
-                )}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date</label>
-                  <p>{format(parseISO(selectedBooking.start_date), "EEEE, MMMM d, yyyy")}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Time</label>
-                  <p>{selectedBooking.start_time} - {selectedBooking.finish_time}</p>
-                </div>
-                {selectedBooking.sell_fee && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Fee</label>
-                    <p className="font-semibold">£{selectedBooking.sell_fee}</p>
+                    <p className="text-lg font-semibold">{selectedBooking.venues.name}</p>
                   </div>
                 )}
               </div>
-              
-              {selectedBooking.notes && (
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
-                  <p className="text-sm mt-1">{selectedBooking.notes}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Date</label>
+                  <p>{format(parseISO(selectedBooking.start_date), "PPP")}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <Badge className={cn(getStatusColor(selectedBooking.artist_status || selectedBooking.status, selectedBooking.placeholder).bg)}>
+                    {selectedBooking.artist_status || selectedBooking.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                {selectedBooking.arrival_time && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Arrival</label>
+                    <p>{selectedBooking.arrival_time}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Start</label>
+                  <p>{selectedBooking.start_time}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Finish</label>
+                  <p>{selectedBooking.finish_time}</p>
+                </div>
+              </div>
+
+              {(selectedBooking.sell_fee || selectedBooking.buy_fee) && (
+                <div className="grid grid-cols-3 gap-4">
+                  {selectedBooking.sell_fee && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Sell Fee</label>
+                      <p className="text-lg font-semibold">£{selectedBooking.sell_fee.toFixed(2)}</p>
+                    </div>
+                  )}
+                  {selectedBooking.buy_fee && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Buy Fee</label>
+                      <p className="text-lg font-semibold">£{selectedBooking.buy_fee.toFixed(2)}</p>
+                    </div>
+                  )}
+                  {selectedBooking.profit_percent && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Profit</label>
+                      <p className="text-lg font-semibold">{selectedBooking.profit_percent}%</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div className="flex gap-2 pt-4 border-t">
-                <Button 
-                  onClick={() => {
-                    navigate(`/bookings/${selectedBooking.id}`);
-                    setSelectedBooking(null);
-                  }}
-                  className="flex-1"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Full Details
+              {selectedBooking.notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                  <p className="text-sm bg-muted p-3 rounded-lg">{selectedBooking.notes}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <Button onClick={() => navigate(`/bookings/${selectedBooking.id}`)} className="flex-1">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Full Details
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setSelectedBooking(null)}
-                >
-                  Close
+                <Button variant="outline" onClick={() => navigate(`/bookings/${selectedBooking.id}`)} className="flex-1">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Booking
                 </Button>
               </div>
             </div>
