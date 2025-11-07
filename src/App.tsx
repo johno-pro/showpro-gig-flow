@@ -50,6 +50,7 @@ import DataManagement from "./pages/DataManagement";
 import FixArtistLinks from "./pages/FixArtistLinks";
 import Diary from "./pages/Diary";
 import JobExplorer from "./pages/JobExplorer";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -488,6 +489,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <JobExplorer />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AdminUsers />
                   </Layout>
                 </ProtectedRoute>
               }
