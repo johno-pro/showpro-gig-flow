@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ChevronLeft, ChevronRight, Edit, Eye } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, addDays, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -103,18 +104,110 @@ export default function Diary() {
   };
 
   const getStatusColor = (status: string, placeholder: boolean) => {
-    if (placeholder) return { bg: "bg-destructive", text: "text-white", border: "border-destructive" };
+    if (placeholder) return { 
+      bg: "bg-destructive", 
+      text: "text-destructive-foreground", 
+      border: "border-destructive",
+      bold: "font-bold"
+    };
     switch (status) {
       case "confirmed":
-        return { bg: "bg-success", text: "text-white", border: "border-success" };
+        return { 
+          bg: "bg-success", 
+          text: "text-success-foreground", 
+          border: "border-success",
+          bold: ""
+        };
       case "pencil":
-        return { bg: "bg-warning", text: "text-warning-foreground", border: "border-warning" };
+        return { 
+          bg: "bg-warning", 
+          text: "text-warning-foreground", 
+          border: "border-warning",
+          bold: ""
+        };
       case "cancelled":
-        return { bg: "bg-muted", text: "text-muted-foreground", border: "border-muted-foreground" };
+        return { 
+          bg: "bg-muted", 
+          text: "text-muted-foreground", 
+          border: "border-muted-foreground",
+          bold: ""
+        };
       default:
-        return { bg: "bg-secondary", text: "text-secondary-foreground", border: "border-border" };
+        return { 
+          bg: "bg-secondary", 
+          text: "text-secondary-foreground", 
+          border: "border-border",
+          bold: ""
+        };
     }
   };
+
+  const renderBookingHoverContent = (booking: Booking) => (
+    <div className="space-y-3 min-w-[280px]">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Artist</label>
+          <p className="text-sm font-semibold">{booking.artists?.name || "TBA"}</p>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Client</label>
+          <p className="text-sm font-semibold">{booking.clients?.name}</p>
+        </div>
+      </div>
+      
+      <div>
+        <label className="text-xs font-medium text-muted-foreground">Location</label>
+        <p className="text-sm font-semibold">{booking.locations?.name}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {booking.arrival_time && (
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Arrival</label>
+            <p className="text-sm">{booking.arrival_time}</p>
+          </div>
+        )}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Start</label>
+          <p className="text-sm">{booking.start_time}</p>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Finish</label>
+          <p className="text-sm">{booking.finish_time}</p>
+        </div>
+      </div>
+
+      {(booking.sell_fee || booking.buy_fee) && (
+        <div className="grid grid-cols-3 gap-2">
+          {booking.sell_fee && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Sell</label>
+              <p className="text-sm font-semibold">£{booking.sell_fee.toFixed(2)}</p>
+            </div>
+          )}
+          {booking.buy_fee && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Buy</label>
+              <p className="text-sm font-semibold">£{booking.buy_fee.toFixed(2)}</p>
+            </div>
+          )}
+          {booking.profit_percent && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Profit</label>
+              <p className="text-sm font-semibold">{booking.profit_percent}%</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {booking.notes && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Notes</label>
+          <p className="text-xs bg-muted p-2 rounded">{booking.notes}</p>
+        </div>
+      )}
+    </div>
+  );
 
   const getCalendarEvents = () => {
     return bookings.map((booking) => {
@@ -190,19 +283,26 @@ export default function Diary() {
                           {dayBookings.map((booking) => {
                             const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
                             return (
-                              <div
-                                key={booking.id}
-                                onClick={() => setSelectedBooking(booking)}
-                                className={cn(
-                                  "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
-                                  colors.bg,
-                                  colors.text,
-                                  booking.artist_status === "cancelled" && "line-through"
-                                )}
-                              >
-                                <div className="font-bold truncate">{booking.locations?.name}</div>
-                                <div>{booking.start_time}</div>
-                              </div>
+                              <HoverCard key={booking.id} openDelay={200}>
+                                <HoverCardTrigger asChild>
+                                  <div
+                                    onClick={() => setSelectedBooking(booking)}
+                                    className={cn(
+                                      "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
+                                      colors.bg,
+                                      colors.text,
+                                      colors.bold,
+                                      booking.artist_status === "cancelled" && "line-through"
+                                    )}
+                                  >
+                                    <div className="font-bold truncate">{booking.locations?.name}</div>
+                                    <div>{booking.start_time}</div>
+                                  </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-auto" side="right">
+                                  {renderBookingHoverContent(booking)}
+                                </HoverCardContent>
+                              </HoverCard>
                             );
                           })}
                         </div>
@@ -244,19 +344,26 @@ export default function Diary() {
                           {dayBookings.map((booking) => {
                             const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
                             return (
-                              <div
-                                key={booking.id}
-                                onClick={() => setSelectedBooking(booking)}
-                                className={cn(
-                                  "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
-                                  colors.bg,
-                                  colors.text,
-                                  booking.artist_status === "cancelled" && "line-through"
-                                )}
-                              >
-                                <div className="font-bold truncate">{booking.artists?.name || "TBA"}</div>
-                                <div>{booking.start_time}</div>
-                              </div>
+                              <HoverCard key={booking.id} openDelay={200}>
+                                <HoverCardTrigger asChild>
+                                  <div
+                                    onClick={() => setSelectedBooking(booking)}
+                                    className={cn(
+                                      "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
+                                      colors.bg,
+                                      colors.text,
+                                      colors.bold,
+                                      booking.artist_status === "cancelled" && "line-through"
+                                    )}
+                                  >
+                                    <div className="font-bold truncate">{booking.artists?.name || "TBA"}</div>
+                                    <div>{booking.start_time}</div>
+                                  </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-auto" side="right">
+                                  {renderBookingHoverContent(booking)}
+                                </HoverCardContent>
+                              </HoverCard>
                             );
                           })}
                         </div>
