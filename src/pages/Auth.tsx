@@ -51,10 +51,22 @@ export default function Auth() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      setIsLoading(false);
+      return;
+    }
+
     const { error } = await signIn(email, password);
 
     if (error) {
-      toast.error(error.message);
+      if (error.message.includes("Invalid login credentials")) {
+        toast.error("Invalid email or password. Please check your credentials and try again.");
+      } else if (error.message.includes("Email not confirmed")) {
+        toast.error("Please check your email and confirm your account before signing in.");
+      } else {
+        toast.error(error.message);
+      }
     } else {
       toast.success("Signed in successfully!");
       navigate("/");
@@ -123,7 +135,7 @@ export default function Auth() {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
-    if (!email.includes('@')) {
+    if (!email || !email.includes('@')) {
       toast.error("Please enter a valid email address");
       setIsLoading(false);
       return;
@@ -134,9 +146,9 @@ export default function Auth() {
     });
 
     if (error) {
-      toast.error(error.message);
+      toast.error(`Failed to send reset email: ${error.message}`);
     } else {
-      toast.success("Password reset email sent! Check your inbox.");
+      toast.success("Password reset email sent! Check your inbox (and spam folder).");
       setShowResetPassword(false);
     }
 
