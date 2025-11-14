@@ -23,18 +23,20 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { sanitizeText } from "@/lib/sanitize";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const contactFormSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  title: z.string().trim().max(100, "Title must be less than 100 characters").optional(),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
-  phone: z.string().trim().max(20, "Phone must be less than 20 characters").optional(),
-  mobile: z.string().trim().max(20, "Mobile must be less than 20 characters").optional(),
+  name: z.string().trim().optional(),
+  title: z.string().trim().optional(),
+  email: z.string().trim().email("Invalid email address").optional().or(z.literal("")),
+  phone: z.string().trim().optional(),
+  mobile: z.string().trim().optional(),
   client_id: z.string().optional(),
   location_id: z.string().optional(),
   department_id: z.string().optional(),
   supplier_id: z.string().optional(),
-  notes: z.string().trim().max(1000, "Notes must be less than 1000 characters").optional(),
+  notes: z.string().trim().optional(),
 });
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
@@ -67,6 +69,12 @@ export function ContactForm({ contactId, onSuccess, onCancel }: ContactFormProps
       supplier_id: "",
       notes: "",
     },
+  });
+
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
+    table: "contacts",
+    formId: contactId,
+    form,
   });
 
   useEffect(() => {

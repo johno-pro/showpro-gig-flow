@@ -15,19 +15,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const supplierFormSchema = z.object({
-  name: z.string().trim().min(1, "Company/Supplier name is required").max(100, "Name must be less than 100 characters"),
-  address: z.string().trim().max(500, "Address must be less than 500 characters").optional(),
-  company_number: z.string().trim().max(50, "Company number must be less than 50 characters").optional(),
-  vat_number: z.string().trim().max(50, "VAT number must be less than 50 characters").optional(),
-  contact_name: z.string().trim().max(100, "Contact name must be less than 100 characters").optional(),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
-  phone: z.string().trim().max(20, "Phone must be less than 20 characters").optional(),
-  accounts_contact_name: z.string().trim().max(100, "Accounts contact name must be less than 100 characters").optional(),
-  accounts_contact_email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal("")),
-  accounts_contact_phone: z.string().trim().max(20, "Phone must be less than 20 characters").optional(),
-  notes: z.string().trim().max(1000, "Notes must be less than 1000 characters").optional(),
+  name: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  company_number: z.string().trim().optional(),
+  vat_number: z.string().trim().optional(),
+  contact_name: z.string().trim().optional(),
+  email: z.string().trim().email("Invalid email address").optional().or(z.literal("")),
+  phone: z.string().trim().optional(),
+  accounts_contact_name: z.string().trim().optional(),
+  accounts_contact_email: z.string().trim().email("Invalid email address").optional().or(z.literal("")),
+  accounts_contact_phone: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
 });
 
 type SupplierFormValues = z.infer<typeof supplierFormSchema>;
@@ -56,6 +58,12 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
       accounts_contact_phone: "",
       notes: "",
     },
+  });
+
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
+    table: "suppliers",
+    formId: supplierId,
+    form,
   });
 
   useEffect(() => {
