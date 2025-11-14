@@ -74,7 +74,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, serie
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
+                <Input {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -113,7 +113,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, serie
             <FormItem>
               <FormLabel>Start Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
+                <Input type="date" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -127,7 +127,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, serie
             <FormItem>
               <FormLabel>End Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
+                <Input type="date" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>

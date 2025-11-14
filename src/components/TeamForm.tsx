@@ -71,7 +71,7 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting, teamId }: Team
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
+                <Input {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -129,7 +129,7 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting, teamId }: Team
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea {...field} value={field.value || ""} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
+                <Textarea {...field} value={field.value || ""} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -51,12 +51,14 @@ export function useFormDraft<T extends Record<string, any>>({
         } else {
           const { data: newDraft, error } = await supabase
             .from(table as any)
-            .insert(draftData)
+            .insert([draftData])
             .select()
             .single();
 
           if (error) throw error;
-          setDraftId(newDraft.id);
+          if (newDraft !== null) {
+            setDraftId((newDraft as any).id);
+          }
         }
 
         setDraftStatus("saved");
@@ -85,10 +87,10 @@ export function useFormDraft<T extends Record<string, any>>({
 
       if (error) throw error;
 
-      if (data) {
+      if (data !== null) {
         form.reset(data as any);
-        setDraftId(data.id);
-        return data.id;
+        setDraftId((data as any).id);
+        return (data as any).id;
       }
     } catch (error: any) {
       console.error("Error loading draft:", error);
@@ -110,7 +112,7 @@ export function useFormDraft<T extends Record<string, any>>({
         } else {
           const { error } = await supabase
             .from(table as any)
-            .insert(completeData);
+            .insert([completeData]);
 
           if (error) throw error;
         }
