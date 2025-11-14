@@ -9,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { toast } from "sonner";
 
 const invoiceBatchFormSchema = z.object({
   client_id: z.string().optional(),
-  batch_date: z.string().min(1, "Batch date is required"),
+  batch_date: z.string().optional(),
   invoice_number: z.string().optional(),
   total_amount: z.string().optional(),
   sent: z.boolean().optional(),
@@ -25,9 +28,10 @@ interface InvoiceBatchFormProps {
   defaultValues?: Partial<InvoiceBatchFormValues>;
   onSubmit: (data: InvoiceBatchFormValues) => void;
   isSubmitting?: boolean;
+  invoiceBatchId?: string;
 }
 
-export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: InvoiceBatchFormProps) {
+export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting, invoiceBatchId }: InvoiceBatchFormProps) {
   const form = useForm<InvoiceBatchFormValues>({
     resolver: zodResolver(invoiceBatchFormSchema),
     defaultValues: defaultValues || {
@@ -39,6 +43,21 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: Invo
       notes: "",
     },
   });
+
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
+    table: "invoice_batches",
+    formId: invoiceBatchId,
+    form,
+  });
+
+  const handleSubmit = async (data: InvoiceBatchFormValues) => {
+    try {
+      await completeSave(data);
+      onSubmit(data);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save invoice batch");
+    }
+  };
 
   const { data: clients } = useQuery({
     queryKey: ["clients"],
@@ -54,14 +73,15 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: Invo
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <DraftIndicator status={draftStatus} />
         <FormField
           control={form.control}
           name="client_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Client</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={(value) => { field.onChange(value); saveDraft(); }} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a client" />
@@ -87,7 +107,7 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: Invo
             <FormItem>
               <FormLabel>Batch Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input type="date" {...field} value={field.value || ""} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -101,7 +121,7 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: Invo
             <FormItem>
               <FormLabel>Invoice Number</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value || ""} />
+                <Input {...field} value={field.value || ""} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -115,7 +135,7 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: Invo
             <FormItem>
               <FormLabel>Total Amount</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" {...field} value={field.value || ""} />
+                <Input type="number" step="0.01" {...field} value={field.value || ""} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -147,16 +167,21 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting }: Invo
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea {...field} value={field.value || ""} />
+                <Textarea {...field} value={field.value || ""} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Invoice Batch"}
-        </Button>
+        <div className="flex gap-3">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Invoice Batch"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={isSubmitting}>
+            Save Draft
+          </Button>
+        </div>
       </form>
     </Form>
   );
