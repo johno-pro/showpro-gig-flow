@@ -240,10 +240,10 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         venue_id: values.venue_id || null,
         artist_id: values.artist_id || null,
         fee_model: values.fee_model,
-        artist_fee: values.artist_fee ? parseFloat(values.artist_fee) : null,
-        client_fee: values.client_fee ? parseFloat(values.client_fee) : null,
-        commission_rate: values.commission_rate ? parseFloat(values.commission_rate) : null,
-        deposit_amount: values.deposit_amount ? parseFloat(values.deposit_amount) : null,
+        artist_fee: values.artist_fee,
+        client_fee: values.client_fee,
+        commission_rate: values.commission_rate,
+        deposit_amount: values.deposit_amount,
         vat_applicable: values.vat_applicable,
         deposit_paid: values.deposit_paid,
         balance_paid: values.balance_paid,
@@ -256,21 +256,8 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         notes: values.notes || null,
       };
 
-      if (bookingId) {
-        const { error } = await supabase
-          .from("bookings")
-          .update(bookingData)
-          .eq("id", bookingId);
-
-        if (error) throw error;
-        toast.success("Booking updated successfully");
-      } else {
-        const { error } = await supabase.from("bookings").insert([bookingData]);
-
-        if (error) throw error;
-        toast.success("Booking created successfully");
-      }
-
+      await completeSave(bookingData as any);
+      toast.success(bookingId ? "Booking updated successfully" : "Booking created successfully");
       onSuccess?.();
     } catch (error: any) {
       toast.error("Failed to save booking");
@@ -723,15 +710,21 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
           )}
         />
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : bookingId ? "Update Booking" : "Create Booking"}
-          </Button>
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-              Cancel
+        <div className="flex items-center justify-between">
+          <DraftIndicator status={draftStatus} />
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
+              Save Draft
             </Button>
-          )}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : bookingId ? "Update Booking" : "Create Booking"}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </Form>

@@ -122,21 +122,8 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
         notes: values.notes?.trim() || null,
       };
 
-      if (supplierId) {
-        const { error } = await supabase
-          .from("suppliers")
-          .update(supplierData)
-          .eq("id", supplierId);
-
-        if (error) throw error;
-        toast.success("Supplier updated successfully");
-      } else {
-        const { error } = await supabase.from("suppliers").insert([supplierData]);
-
-        if (error) throw error;
-        toast.success("Supplier created successfully");
-      }
-
+      await completeSave(supplierData);
+      toast.success(supplierId ? "Supplier updated successfully" : "Supplier created successfully");
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to save supplier");
@@ -322,15 +309,21 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
           )}
         />
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : supplierId ? "Update Supplier" : "Create Supplier"}
-          </Button>
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-              Cancel
+        <div className="flex items-center justify-between">
+          <DraftIndicator status={draftStatus} />
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
+              Save Draft
             </Button>
-          )}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : supplierId ? "Update Supplier" : "Create Supplier"}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </Form>

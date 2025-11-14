@@ -134,21 +134,8 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
         notes: values.notes?.trim() || null,
       };
 
-      if (clientId) {
-        const { error } = await supabase
-          .from("clients")
-          .update(clientData)
-          .eq("id", clientId);
-
-        if (error) throw error;
-        toast.success("Client updated successfully");
-      } else {
-        const { error } = await supabase.from("clients").insert([clientData]);
-
-        if (error) throw error;
-        toast.success("Client created successfully");
-      }
-
+      await completeSave(clientData);
+      toast.success(clientId ? "Client updated successfully" : "Client created successfully");
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to save client");
@@ -381,15 +368,21 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
           )}
         />
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : clientId ? "Update Client" : "Create Client"}
-          </Button>
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-              Cancel
+        <div className="flex items-center justify-between">
+          <DraftIndicator status={draftStatus} />
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
+              Save Draft
             </Button>
-          )}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : clientId ? "Update Client" : "Create Client"}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </Form>
