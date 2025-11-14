@@ -23,30 +23,32 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const bookingFormSchema = z.object({
-  booking_date: z.string().min(1, "Booking date is required"),
+  booking_date: z.string().optional(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
-  status: z.enum(["enquiry", "pencil", "confirmed", "cancelled"]),
-  client_id: z.string().min(1, "Client is required"),
+  status: z.enum(["enquiry", "pencil", "confirmed", "cancelled"]).optional(),
+  client_id: z.string().optional(),
   location_id: z.string().optional(),
   venue_id: z.string().optional(),
   artist_id: z.string().optional(),
-  fee_model: z.enum(["commission", "buy_sell"]),
+  fee_model: z.enum(["commission", "buy_sell"]).optional(),
   artist_fee: z.string().optional(),
   client_fee: z.string().optional(),
   commission_rate: z.string().optional(),
-  vat_applicable: z.boolean(),
+  vat_applicable: z.boolean().optional(),
   deposit_amount: z.string().optional(),
-  deposit_paid: z.boolean(),
-  balance_paid: z.boolean(),
-  invoiced: z.boolean(),
+  deposit_paid: z.boolean().optional(),
+  balance_paid: z.boolean().optional(),
+  invoiced: z.boolean().optional(),
   arrival_time: z.string().optional(),
   performance_times: z.string().optional(),
   confirmation_link: z.string().optional(),
   invoice_status: z.string().optional(),
-  placeholder: z.boolean(),
+  placeholder: z.boolean().optional(),
   notes: z.string().optional(),
 });
 
@@ -84,6 +86,12 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
       invoice_status: "uninvoiced",
       placeholder: false,
     },
+  });
+
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
+    table: "bookings",
+    formId: bookingId,
+    form,
   });
 
   useEffect(() => {

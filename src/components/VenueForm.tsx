@@ -22,10 +22,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const venueFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  park_id: z.string().min(1, "Park is required"),
+  name: z.string().optional(),
+  park_id: z.string().optional(),
   capacity: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -50,6 +52,12 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
       capacity: "",
       notes: "",
     },
+  });
+
+  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
+    table: "venues",
+    formId: venueId,
+    form,
   });
 
   useEffect(() => {
@@ -103,28 +111,8 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
   const onSubmit = async (values: VenueFormValues) => {
     setLoading(true);
     try {
-      const venueData = {
-        name: values.name,
-        park_id: values.park_id,
-        capacity: values.capacity ? parseInt(values.capacity) : null,
-        notes: values.notes || null,
-      };
-
-      if (venueId) {
-        const { error } = await supabase
-          .from("venues")
-          .update(venueData)
-          .eq("id", venueId);
-
-        if (error) throw error;
-        toast.success("Venue updated successfully");
-      } else {
-        const { error } = await supabase.from("venues").insert([venueData]);
-
-        if (error) throw error;
-        toast.success("Venue created successfully");
-      }
-
+      await completeSave(values);
+      toast.success(venueId ? "Venue updated successfully" : "Venue created successfully");
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to save venue");
@@ -137,6 +125,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <DraftIndicator status={draftStatus} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -145,7 +134,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
               <FormItem>
                 <FormLabel>Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Venue name" {...field} />
+                  <Input placeholder="Venue name" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -158,7 +147,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
             render={({ field }) => (
             <FormItem>
               <FormLabel>Location *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select onValueChange={(value) => { field.onChange(value); saveDraft(); }} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select location" />
@@ -184,7 +173,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
               <FormItem>
                 <FormLabel>Capacity</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="Maximum capacity" {...field} />
+                  <Input type="number" placeholder="Maximum capacity" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -203,6 +192,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
                   placeholder="Add any additional notes..."
                   className="min-h-[100px]"
                   {...field}
+                  onBlur={() => { field.onBlur(); saveDraft(); }}
                 />
               </FormControl>
               <FormMessage />
@@ -213,6 +203,9 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
             {loading ? "Saving..." : venueId ? "Update Venue" : "Create Venue"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
+            Save Draft
           </Button>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>

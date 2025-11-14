@@ -24,19 +24,21 @@ import {
 import { toast } from "sonner";
 import { Upload, FileText, X } from "lucide-react";
 import { sanitizeText, sanitizeFileName } from "@/lib/sanitize";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const artistFormSchema = z.object({
-  name: z.string().trim().min(1, "Professional name is required").max(200, "Name too long"),
-  full_name: z.string().trim().max(200, "Full name too long").optional(),
-  act_type: z.string().trim().max(100, "Act type too long").optional(),
+  name: z.string().trim().optional(),
+  full_name: z.string().trim().optional(),
+  act_type: z.string().trim().optional(),
   supplier_id: z.string().optional(),
-  email: z.string().trim().email("Invalid email").max(255, "Email too long").optional().or(z.literal("")),
-  phone: z.string().trim().max(20, "Phone too long").optional(),
+  email: z.string().trim().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().trim().optional(),
   invoice_upload_url: z.string().optional(),
   buy_fee: z.string().optional(),
   sell_fee: z.string().optional(),
   vat_rate: z.string().optional(),
-  notes: z.string().trim().max(2000, "Notes too long").optional(),
+  notes: z.string().trim().optional(),
 });
 
 type ArtistFormValues = z.infer<typeof artistFormSchema>;
@@ -68,6 +70,12 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
       vat_rate: "20",
       notes: "",
     },
+  });
+
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
+    table: "artists",
+    formId: artistId,
+    form,
   });
 
   useEffect(() => {
