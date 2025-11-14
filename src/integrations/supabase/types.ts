@@ -27,6 +27,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           sell_fee: number | null
+          status: string | null
           supplier_id: string | null
           updated_at: string | null
           user_id: string | null
@@ -44,6 +45,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           sell_fee?: number | null
+          status?: string | null
           supplier_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           sell_fee?: number | null
+          status?: string | null
           supplier_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -92,6 +95,7 @@ export type Database = {
           name: string
           pattern: string | null
           start_date: string
+          status: string | null
         }
         Insert: {
           client_id?: string | null
@@ -101,6 +105,7 @@ export type Database = {
           name: string
           pattern?: string | null
           start_date: string
+          status?: string | null
         }
         Update: {
           client_id?: string | null
@@ -110,6 +115,7 @@ export type Database = {
           name?: string
           pattern?: string | null
           start_date?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -410,6 +416,7 @@ export type Database = {
           invoice_preferences: string | null
           name: string
           notes: string | null
+          status: string | null
           updated_at: string | null
           vat_number: string | null
         }
@@ -430,6 +437,7 @@ export type Database = {
           invoice_preferences?: string | null
           name: string
           notes?: string | null
+          status?: string | null
           updated_at?: string | null
           vat_number?: string | null
         }
@@ -450,6 +458,7 @@ export type Database = {
           invoice_preferences?: string | null
           name?: string
           notes?: string | null
+          status?: string | null
           updated_at?: string | null
           vat_number?: string | null
         }
@@ -467,6 +476,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          status: string | null
           supplier_id: string | null
           title: string | null
           updated_at: string | null
@@ -482,6 +492,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          status?: string | null
           supplier_id?: string | null
           title?: string | null
           updated_at?: string | null
@@ -497,6 +508,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          status?: string | null
           supplier_id?: string | null
           title?: string | null
           updated_at?: string | null
@@ -552,18 +564,21 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          status: string | null
         }
         Insert: {
           client_id?: string | null
           created_at?: string | null
           id?: string
           name: string
+          status?: string | null
         }
         Update: {
           client_id?: string | null
           created_at?: string | null
           id?: string
           name?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -645,6 +660,7 @@ export type Database = {
           notes: string | null
           sent: boolean | null
           sent_at: string | null
+          status: string | null
           total_amount: number | null
         }
         Insert: {
@@ -656,6 +672,7 @@ export type Database = {
           notes?: string | null
           sent?: boolean | null
           sent_at?: string | null
+          status?: string | null
           total_amount?: number | null
         }
         Update: {
@@ -667,6 +684,7 @@ export type Database = {
           notes?: string | null
           sent?: boolean | null
           sent_at?: string | null
+          status?: string | null
           total_amount?: number | null
         }
         Relationships: [
@@ -745,6 +763,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           postcode: string | null
+          status: string | null
           updated_at: string | null
           upload_history: Json | null
         }
@@ -762,6 +781,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postcode?: string | null
+          status?: string | null
           updated_at?: string | null
           upload_history?: Json | null
         }
@@ -779,6 +799,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postcode?: string | null
+          status?: string | null
           updated_at?: string | null
           upload_history?: Json | null
         }
@@ -804,6 +825,7 @@ export type Database = {
           notes: string | null
           payment_date: string | null
           payment_type: string | null
+          status: string | null
         }
         Insert: {
           amount: number
@@ -816,6 +838,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string | null
           payment_type?: string | null
+          status?: string | null
         }
         Update: {
           amount?: number
@@ -828,6 +851,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string | null
           payment_type?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -900,6 +924,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          status: string | null
           updated_at: string | null
           vat_number: string | null
         }
@@ -916,6 +941,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          status?: string | null
           updated_at?: string | null
           vat_number?: string | null
         }
@@ -932,6 +958,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          status?: string | null
           updated_at?: string | null
           vat_number?: string | null
         }
@@ -944,6 +971,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          status: string | null
         }
         Insert: {
           artist_ids?: string[] | null
@@ -951,6 +979,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          status?: string | null
         }
         Update: {
           artist_ids?: string[] | null
@@ -958,6 +987,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -1025,6 +1055,7 @@ export type Database = {
           location_id: string | null
           name: string
           notes: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1034,6 +1065,7 @@ export type Database = {
           location_id?: string | null
           name: string
           notes?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1043,6 +1075,7 @@ export type Database = {
           location_id?: string | null
           name?: string
           notes?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []

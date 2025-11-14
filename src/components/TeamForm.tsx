@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { useEffect } from "react";
 
 const teamFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -21,9 +24,10 @@ interface TeamFormProps {
   defaultValues?: Partial<TeamFormValues>;
   onSubmit: (data: TeamFormValues) => void;
   isSubmitting?: boolean;
+  teamId?: string;
 }
 
-export function TeamForm({ defaultValues, onSubmit, isSubmitting }: TeamFormProps) {
+export function TeamForm({ defaultValues, onSubmit, isSubmitting, teamId }: TeamFormProps) {
   const form = useForm<TeamFormValues>({
     resolver: zodResolver(teamFormSchema),
     defaultValues: defaultValues || {
@@ -32,6 +36,18 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting }: TeamFormProp
       artist_ids: [],
     },
   });
+
+  const { saveDraft, loadDraft, draftStatus } = useFormDraft({
+    table: "teams",
+    formId: teamId,
+    form,
+  });
+
+  useEffect(() => {
+    if (!teamId && !defaultValues) {
+      loadDraft();
+    }
+  }, [teamId, defaultValues]);
 
   const { data: artists } = useQuery({
     queryKey: ["artists"],
@@ -55,7 +71,7 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting }: TeamFormProp
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,13 +101,11 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting }: TeamFormProp
                           <Checkbox
                             checked={field.value?.includes(artist.id)}
                             onCheckedChange={(checked) => {
-                              return checked
-                                ? field.onChange([...(field.value || []), artist.id])
-                                : field.onChange(
-                                    field.value?.filter(
-                                      (value) => value !== artist.id
-                                    )
-                                  );
+                              const newValue = checked
+                                ? [...(field.value || []), artist.id]
+                                : field.value?.filter((value) => value !== artist.id);
+                              field.onChange(newValue);
+                              saveDraft();
                             }}
                           />
                         </FormControl>
@@ -115,16 +129,22 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting }: TeamFormProp
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea {...field} value={field.value || ""} />
+                <Textarea {...field} value={field.value || ""} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Team"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => saveDraft()}>
+            Save Draft
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Team"}
+          </Button>
+          <DraftIndicator status={draftStatus} />
+        </div>
       </form>
     </Form>
   );
