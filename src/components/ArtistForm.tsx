@@ -192,27 +192,14 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
         email: values.email ? sanitizeText(values.email, 255) : null,
         phone: values.phone ? sanitizeText(values.phone, 20) : null,
         invoice_upload_url: invoiceUrl,
-        buy_fee: values.buy_fee ? parseFloat(values.buy_fee) : null,
-        sell_fee: values.sell_fee ? parseFloat(values.sell_fee) : null,
-        vat_rate: values.vat_rate ? parseFloat(values.vat_rate) : 20,
+        buy_fee: values.buy_fee,
+        sell_fee: values.sell_fee,
+        vat_rate: values.vat_rate,
         notes: values.notes ? sanitizeText(values.notes, 2000) : null,
       };
 
-      if (artistId) {
-        const { error } = await supabase
-          .from("artists")
-          .update(artistData)
-          .eq("id", artistId);
-
-        if (error) throw error;
-        toast.success("Artist updated successfully");
-      } else {
-        const { error } = await supabase.from("artists").insert([artistData]);
-
-        if (error) throw error;
-        toast.success("Artist created successfully");
-      }
-
+      await completeSave(artistData as any);
+      toast.success(artistId ? "Artist updated successfully" : "Artist created successfully");
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to save artist");
@@ -467,15 +454,21 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
           )}
         />
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : artistId ? "Update Artist" : "Create Artist"}
-          </Button>
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-              Cancel
+        <div className="flex items-center justify-between">
+          <DraftIndicator status={draftStatus} />
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
+              Save Draft
             </Button>
-          )}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : artistId ? "Update Artist" : "Create Artist"}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </Form>
