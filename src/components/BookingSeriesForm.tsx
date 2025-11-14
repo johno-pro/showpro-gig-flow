@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { useEffect } from "react";
 
 const bookingSeriesFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   client_id: z.string().optional(),
-  start_date: z.string().min(1, "Start date is required"),
-  end_date: z.string().min(1, "End date is required"),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
   pattern: z.string().optional(),
 });
 
@@ -22,9 +25,10 @@ interface BookingSeriesFormProps {
   defaultValues?: Partial<BookingSeriesFormValues>;
   onSubmit: (data: BookingSeriesFormValues) => void;
   isSubmitting?: boolean;
+  seriesId?: string;
 }
 
-export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: BookingSeriesFormProps) {
+export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, seriesId }: BookingSeriesFormProps) {
   const form = useForm<BookingSeriesFormValues>({
     resolver: zodResolver(bookingSeriesFormSchema),
     defaultValues: defaultValues || {
@@ -35,6 +39,18 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
       pattern: "",
     },
   });
+
+  const { saveDraft, loadDraft, draftStatus } = useFormDraft({
+    table: "booking_series",
+    formId: seriesId,
+    form,
+  });
+
+  useEffect(() => {
+    if (!seriesId && !defaultValues) {
+      loadDraft();
+    }
+  }, [seriesId, defaultValues]);
 
   const { data: clients } = useQuery({
     queryKey: ["clients"],
@@ -58,7 +74,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -71,7 +87,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
           render={({ field }) => (
             <FormItem>
               <FormLabel>Client</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={(val) => { field.onChange(val); saveDraft(); }} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a client" />
@@ -97,7 +113,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
             <FormItem>
               <FormLabel>Start Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input type="date" {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -111,7 +127,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
             <FormItem>
               <FormLabel>End Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input type="date" {...field} onBlur={(e) => { field.onBlur(e); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -124,7 +140,7 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
           render={({ field }) => (
             <FormItem>
               <FormLabel>Pattern</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={(val) => { field.onChange(val); saveDraft(); }} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a pattern" />
@@ -142,9 +158,15 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting }: Boo
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Booking Series"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => saveDraft()}>
+            Save Draft
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Booking Series"}
+          </Button>
+          <DraftIndicator status={draftStatus} />
+        </div>
       </form>
     </Form>
   );
