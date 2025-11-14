@@ -21,10 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const departmentFormSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  client_id: z.string().min(1, "Client is required"),
+  name: z.string().trim().max(100, "Name must be less than 100 characters").optional(),
+  client_id: z.string().optional(),
 });
 
 type DepartmentFormValues = z.infer<typeof departmentFormSchema>;
@@ -45,6 +47,12 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
       name: "",
       client_id: "",
     },
+  });
+
+  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
+    table: "departments",
+    formId: departmentId,
+    form,
   });
 
   useEffect(() => {
@@ -96,25 +104,12 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
     setLoading(true);
     try {
       const departmentData = {
-        name: values.name.trim(),
-        client_id: values.client_id,
+        name: values.name?.trim() || "",
+        client_id: values.client_id || "",
       };
 
-      if (departmentId) {
-        const { error } = await supabase
-          .from("departments")
-          .update(departmentData)
-          .eq("id", departmentId);
-
-        if (error) throw error;
-        toast.success("Department updated successfully");
-      } else {
-        const { error } = await supabase.from("departments").insert([departmentData]);
-
-        if (error) throw error;
-        toast.success("Department created successfully");
-      }
-
+      await completeSave(departmentData);
+      toast.success(departmentId ? "Department updated successfully" : "Department created successfully");
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to save department");
@@ -127,14 +122,15 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <DraftIndicator status={draftStatus} />
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Department Name *</FormLabel>
+              <FormLabel>Department Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Entertainment, Events, Marketing" {...field} />
+                <Input placeholder="e.g. Entertainment, Events, Marketing" {...field} value={field.value || ""} onBlur={() => { field.onBlur(); saveDraft(); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -146,8 +142,8 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
           name="client_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <FormLabel>Client</FormLabel>
+              <Select onValueChange={(value) => { field.onChange(value); saveDraft(); }} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select client" />
@@ -168,7 +164,10 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : departmentId ? "Update Department" : "Create Department"}
+            {loading ? "Saving..." : departmentId || draftId ? "Update Department" : "Create Department"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
+            Save Draft
           </Button>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
