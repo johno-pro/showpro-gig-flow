@@ -719,3 +719,219 @@ return new Response(JSON.stringify({
 }), {
   headers: { "Content-Type": "application/json" },
 });
+// --- BOOKING FORM WITH FULL DRAFT SYSTEM (AUTO-LOAD + AUTO-SAVE) ---
+
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+import { supabase } from "@/integrations/supabase/client";
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { formatGBP } from "@/lib/utils";
+
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
+
+// Import your sub-forms
+import { ArtistForm } from "./ArtistForm";
+import { ClientForm } from "./ClientForm";
+import { VenueForm } from "./VenueForm";
+import { LocationForm } from "./LocationForm";
+import { SupplierForm } from "./SupplierForm";
+import { ContactForm } from "./ContactForm";
+
+
+// ------------------ SCHEMA ------------------
+
+const bookingSchema = z.object({
+  artist_id: z.string().optional(),
+  custom_artist: z.string().optional(),
+
+  venue_id: z.string().optional(),
+  custom_venue: z.string().optional(),
+
+  client_id: z.string().optional(),
+  custom_client: z.string().optional(),
+
+  location_id: z.string().optional(),
+  custom_location: z.string().optional(),
+
+  supplier_id: z.string().optional(),
+  custom_supplier: z.string().optional(),
+
+  contact_id: z.string().optional(),
+  custom_contact: z.string().optional(),
+
+  arrival_time: z.date().optional(),
+  performance_range: z.object({
+    from: z.date().optional(),
+    to: z.date().optional(),
+  }).optional(),
+
+  total_rate: z.number().optional(),
+  split_ratio: z.number().optional(),
+
+  notes: z.string().optional(),
+  status: z.string().optional(),
+});
+
+type BookingFormData = z.infer<typeof bookingSchema>;
+
+
+// ------------------ COMPONENT ------------------
+
+export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
+  const [venues, setVenues] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [contacts, setContacts] = useState([]);
+
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      arrival_time: new Date(new Date().setHours(18, 0, 0, 0)),
+      performance_range: {
+        from: new Date(new Date().setHours(19, 0, 0, 0)),
+        to: new Date(new Date().setHours(23, 30, 0, 0)),
+      },
+      total_rate: 150,
+      split_ratio: 0.85,
+      status: "draft",
+    },
+  });
+
+  // ------------------ DRAFT SYSTEM ------------------
+
+  const {
+    loadDraft,
+    saveDraft,
+    completeSave,
+    draftStatus
+  } = useFormDraft({
+    table: "bookings",
+    form,
+    formId: null, // ALWAYS NEW → auto-load latest draft
+  });
+
+  // Load most recent draft on mount
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // Auto-save every time the form changes (debounced inside hook)
+  useEffect(() => {
+    const sub = form.watch((data) => {
+      saveDraft(data);
+    });
+    return () => sub.unsubscribe();
+  }, [form.watch]);
+
+  // ------------------ DATA LOOKUPS ------------------
+
+  useEffect(() => {
+    supabase.from("venues").select("id, name").order("name").then(({ data }) => setVenues(data || []));
+    supabase.from("artists").select("id, name").order("name").then(({ data }) => setArtists(data || []));
+    supabase.from("clients").select("id, name").order("name").then(({ data }) => setClients(data || []));
+    supabase.from("locations").select("id, name").order("name").then(({ data }) => setLocations(data || []));
+    supabase.from("suppliers").select("id, name").order("name").then(({ data }) => setSuppliers(data || []));
+    supabase.from("contacts").select("id, name").order("name").then(({ data }) => setContacts(data || []));
+  }, []);
+
+  // ------------------ MONEY PREVIEW ------------------
+
+  const rate = form.watch("total_rate") || 0;
+  const ratio = form.watch("split_ratio") || 0.85;
+
+  const preview = {
+    artist: rate * ratio,
+    agency: rate * (1 - ratio),
+  };
+
+  // ------------------ SUBMIT (finalise draft → active) ------------------
+
+  const onSubmit = async (values: BookingFormData) => {
+    const result = await completeSave({
+      ...values,
+      status: "pending",
+    });
+
+    if (!result.error) {
+      toast.success("Booking created!");
+      onSuccess?.();
+    } else {
+      toast.error(result.error.message);
+    }
+  };
+
+  // ------------------ RENDER UI ------------------
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+        <Tabs defaultValue="details">
+          <TabsList>
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="times">Times</TabsTrigger>
+            <TabsTrigger value="money">Money</TabsTrigger>
+          </TabsList>
+
+          {/* DETAILS TAB */}
+          <TabsContent value="details">
+            {/* ------------ ARTIST ------------ */}
+            <FormField name="artist_id" render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Artist</FormLabel>
+                <Select
+                  value={field.value || ""}
+                  onValueChange={(v) => {
+                    field.onChange(v);
+                    if (v === "manual") form.setValue("custom_artist", "");
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select artist" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {artists.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="manual">Manual Artist</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {field.value === "manual" && (
+                  <Input
+                    placeholder="Custom artist"
+                    on
+
