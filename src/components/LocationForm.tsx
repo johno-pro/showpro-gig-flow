@@ -24,6 +24,8 @@ import {
 import { toast } from "sonner";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useEntityContacts } from "@/hooks/useEntityContacts";
 
 const locationFormSchema = z.object({
   name: z.string().optional(),
@@ -72,6 +74,13 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
     formId: locationId,
     form,
   });
+
+  const {
+    contacts,
+    selectedContactIds,
+    setSelectedContactIds,
+    saveEntityContacts,
+  } = useEntityContacts("location", locationId);
 
   useEffect(() => {
     fetchClients();
@@ -130,7 +139,13 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
   const onSubmit = async (values: LocationFormValues) => {
     setLoading(true);
     try {
-      await completeSave(values);
+      const savedData = await completeSave(values);
+      const locationIdToUse = locationId || (savedData as any)?.id || draftId;
+      
+      if (locationIdToUse && selectedContactIds.length > 0) {
+        await saveEntityContacts(locationIdToUse, selectedContactIds);
+      }
+      
       toast.success(locationId ? "Location updated successfully" : "Location created successfully");
       onSuccess?.();
     } catch (error: any) {
@@ -307,6 +322,16 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
             </FormItem>
           )}
         />
+
+        <div>
+          <FormLabel>Contacts</FormLabel>
+          <MultiSelect
+            options={contacts.map(c => ({ value: c.id, label: c.name }))}
+            selected={selectedContactIds}
+            onChange={setSelectedContactIds}
+            placeholder="Select contacts..."
+          />
+        </div>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
