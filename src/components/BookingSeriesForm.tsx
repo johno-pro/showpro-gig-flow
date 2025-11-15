@@ -1,183 +1,293 @@
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Calendar } from "@/components/ui/calendar";
+import { toast } from "sonner";
+import { formatGBP } from "@/lib/utils";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { DraftIndicator } from "@/components/ui/draft-indicator";
-import { useEffect } from "react";
+import { DraftIndicator } from "@/components/DraftIndicator";
 
-const bookingSeriesFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  client_id: z.string().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  pattern: z.string().optional(),
-});
+const bookingSchema = z
+  .object({
+    artist_id: z.string().optional(),
+    venue_id: z.string().optional(),
+    client_id: z.string().optional(),
+    location_id: z.string().optional(),
+    supplier_id: z.string().optional(),
+    contact_id: z.string().optional(),
+    arrival_time: z.date().optional(),
+    performance_range: z.object({ from: z.date().optional(), to: z.date().optional() }).optional(),
+    total_rate: z.number().optional(),
+    split_ratio: z.number().min(0.5).max(0.95).default(0.85),
+    notes: z.string().optional(),
+    custom_artist: z.string().optional(),
+    custom_venue: z.string().optional(),
+    custom_client: z.string().optional(),
+    custom_location: z.string().optional(),
+    custom_supplier: z.string().optional(),
+    custom_contact: z.string().optional(),
+  })
+  .refine((data) => data.artist_id || data.custom_artist, { message: "Artist required" });
 
-type BookingSeriesFormValues = z.infer<typeof bookingSeriesFormSchema>;
+type BookingFormData = z.infer<typeof bookingSchema>;
 
-interface BookingSeriesFormProps {
-  defaultValues?: Partial<BookingSeriesFormValues>;
-  onSubmit: (data: BookingSeriesFormValues) => void;
-  isSubmitting?: boolean;
-  seriesId?: string;
-}
+export function BookingForm({
+  defaultValues,
+  onSuccess,
+}: {
+  defaultValues?: Partial<BookingFormData>;
+  onSuccess?: () => void;
+}) {
+  const [data, setData] = useState({
+    venues: [],
+    artists: [],
+    clients: [],
+    locations: [],
+    suppliers: [],
+    contacts: [],
+  });
+  const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState({ artist: 0, agency: 0 });
+  const [modals, setModals] = useState({
+    artist: false,
+    client: false,
+    venue: false,
+    location: false,
+    supplier: false,
+    contact: false,
+  });
+  const [newIds, setNewIds] = useState({ artist: "", client: "", venue: "", location: "", supplier: "", contact: "" });
 
-export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, seriesId }: BookingSeriesFormProps) {
-  const form = useForm<BookingSeriesFormValues>({
-    resolver: zodResolver(bookingSeriesFormSchema),
-    defaultValues: defaultValues || {
-      name: "",
-      client_id: "",
-      start_date: "",
-      end_date: "",
-      pattern: "",
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      arrival_time: new Date(new Date().setHours(18, 0, 0, 0)),
+      performance_range: {
+        from: new Date(new Date().setHours(19, 0, 0, 0)),
+        to: new Date(new Date().setHours(23, 30, 0, 0)),
+      },
+      total_rate: 150,
+      ...defaultValues,
     },
   });
 
-  const { saveDraft, loadDraft, completeSave, draftStatus } = useFormDraft({
-    table: "booking_series",
-    formId: seriesId,
-    form,
-  });
+  const { draftStatus, saveDraft, completeSave } = useFormDraft({ table: "bookings", form });
 
-  const handleSubmit = async (data: BookingSeriesFormValues) => {
+  useEffect(() => {
+    Promise.all([
+      supabase.from("venues").select("id, name").order("name"),
+      supabase.from("artists").select("id, name").order("name"),
+      supabase.from("clients").select("id, name").order("name"),
+      supabase.from("locations").select("id, name").order("name"),
+      supabase.from("suppliers").select("id, name").order("name"),
+      supabase.from("contacts").select("id, name").order("name"),
+    ]).then(([venues, artists, clients, locations, suppliers, contacts]) => {
+      setData({
+        venues: venues.data || [],
+        artists: artists.data || [],
+        clients: clients.data || [],
+        locations: locations.data || [],
+        suppliers: suppliers.data || [],
+        contacts: contacts.data || [],
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const { split_ratio, total_rate } = form.watch();
+    setPreview({ artist: total_rate * split_ratio, agency: total_rate * (1 - split_ratio) });
+  }, [form.watch("split_ratio"), form.watch("total_rate")]);
+
+  const openModal = (key) => setModals((prev) => ({ ...prev, [key]: true }));
+  const closeModal = (key) => setModals((prev) => ({ ...prev, [key]: false }));
+  const setNewId = (key, id) => {
+    setNewIds((prev) => ({ ...prev, [key]: id }));
+    form.setValue(MODALS[key].formKey, id);
+    closeModal(key);
+    toast.success(`${MODALS[key].label} added!`);
+    saveDraft(form.getValues());
+  };
+
+  const renderField = (key) => {
+    const { formKey, customKey, label, dataKey } = MODALS[key];
+    const items = data[dataKey];
+    const value = form.watch(formKey);
+
+    return (
+      <FormItem className="mb-4">
+        <FormLabel>{label}</FormLabel>
+        <Select
+          onValueChange={(v) => {
+            form.setValue(formKey, v);
+            if (v === "manual") form.setValue(customKey, "");
+          }}
+          value={value}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {items.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.name}
+              </SelectItem>
+            ))}
+            <SelectItem value="manual">Manual {label}</SelectItem>
+          </SelectContent>
+        </Select>
+        {value === "manual" && (
+          <Input
+            className="mt-1"
+            placeholder={`Custom ${label.toLowerCase()} name`}
+            onChange={(e) => form.setValue(customKey, e.target.value)}
+          />
+        )}
+        <Button type="button" variant="link" onClick={() => openModal(key)} className="p-0 h-auto mt-1">
+          Add New {label}
+        </Button>
+        <FormMessage />
+      </FormItem>
+    );
+  };
+
+  const onSubmit = async (data) => {
+    setSaving(true);
     try {
       await completeSave(data);
-      onSubmit(data);
-    } catch (error: any) {
-      console.error("Failed to save booking series:", error);
+      toast.success("Booking created!");
+      onSuccess?.();
+    } catch (err) {
+      toast.error(err.message || "Booking failed");
+    } finally {
+      setSaving(false);
     }
   };
 
-  useEffect(() => {
-    if (!seriesId && !defaultValues) {
-      loadDraft();
-    }
-  }, [seriesId, defaultValues]);
-
-  const { data: clients } = useQuery({
-    queryKey: ["clients"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <DraftIndicator status={draftStatus} />
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="client_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client</FormLabel>
-              <Select onValueChange={(val) => { field.onChange(val); saveDraft(); }} defaultValue={field.value}>
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="times">Times</TabsTrigger>
+          <TabsTrigger value="money">Money</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details">
+          {renderField("artist")}
+          {renderField("client")}
+          {renderField("venue")}
+          {renderField("location")}
+          {renderField("supplier")}
+          {renderField("contact")}
+        </TabsContent>
+        <TabsContent value="times">
+          <FormField
+            name="arrival_time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Arrival (Default 6pm)</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
-                  </SelectTrigger>
+                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
                 </FormControl>
-                <SelectContent>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="start_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Start Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="end_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>End Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="pattern"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Pattern</FormLabel>
-              <Select onValueChange={(val) => { field.onChange(val); saveDraft(); }} defaultValue={field.value}>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="performance_range"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Performance (Default 7pm-11:30pm)</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a pattern" />
-                  </SelectTrigger>
+                  <Calendar mode="range" selected={field.value} onSelect={(range) => field.onChange(range)} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </TabsContent>
+        <TabsContent value="money">
+          <FormField
+            name="total_rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rate (£)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="e.g. 150" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="split_ratio"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Split Ratio</FormLabel>
+                <Select onValueChange={(v) => field.onChange(parseFloat(v))} value={field.value.toString()}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="85/15" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.85">85/15</SelectItem>
+                    <SelectItem value="0.80">80/20</SelectItem>
+                    <SelectItem value="0.90">90/10</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <p>Artist: {formatGBP(preview.artist)}</p>
+            <p>Agency: {formatGBP(preview.agency)}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+      <div className="flex gap-3 mt-4">
+        <Button type="button" variant="outline" onClick={() => saveDraft(form.getValues())} disabled={saving}>
+          {saving ? "Saving..." : "Save Draft"}
+        </Button>
+        <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={saving}>
+          {saving ? "Creating..." : "Create Booking"}
+        </Button>
+      </div>
+      <DraftIndicator status={draftStatus} />
+      <FormField
+        name="notes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Notes</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="Add notes..." />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => saveDraft()}>
-            Save Draft
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Booking Series"}
-          </Button>
-          <DraftIndicator status={draftStatus} />
-        </div>
-      </form>
+      {/* Modals (Concise Loop) */}
+      {Object.entries(MODALS).map(([key, config]) => (
+        <Dialog key={key} open={modals[key]} onOpenChange={(open) => setModals((prev) => ({ ...prev, [key]: open }))}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New {config.label}</DialogTitle>
+            </DialogHeader>
+            <config.Form onSuccess={(id) => setNewId(key, id)} />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModals((prev) => ({ ...prev, [key]: false }))}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ))}
     </Form>
   );
 }
