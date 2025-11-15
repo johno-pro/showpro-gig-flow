@@ -1554,4 +1554,3 @@ export function ContactForm({ contactId, entityType, entityId, onSuccess, onCanc
       </form>
     </Form>
   );
-}
