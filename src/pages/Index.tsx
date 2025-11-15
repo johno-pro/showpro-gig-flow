@@ -935,3 +935,623 @@ export function BookingForm({ onSuccess }: { onSuccess?: () => void }) {
                     placeholder="Custom artist"
                     on
 
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
+
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+
+import { toast } from "sonner";
+import { CONTACT_ROLES } from "@/lib/contactRoles";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { DraftIndicator } from "@/components/ui/draft-indicator";
+
+// Chip component
+function ContactChip({ label, role, onRemove }: { label: string; role: string; onRemove: () => void }) {
+  return (
+    <div className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full text-sm">
+      <span>{label}</span>
+      <span className="text-xs text-primary/70">({role})</span>
+      <button onClick={onRemove} className="text-red-500 hover:underline text-xs">
+        remove
+      </button>
+    </div>
+  );
+}
+
+const contactSchema = z.object({
+  name: z.string().min(1, "Name required"),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  mobile: z.string().optional(),
+  notes: z.string().optional(),
+
+  // Relations (arrays of: { id, role })
+  artists: z.array(z.object({ id: z.string(), role: z.string() })).optional(),
+  venues: z.array(z.object({ id: z.string(), role: z.string() })).optional(),
+  clients: z.array(z.object({ id: z.string(), role: z.string() })).optional(),
+  locations: z.array(z.object({ id: z.string(), role: z.string() })).optional(),
+  suppliers: z.array(z.object({ id: z.string(), role: z.string() })).optional(),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
+
+export function ContactForm({ contactId, onSuccess, onCancel }: { contactId?: string; onSuccess?: () => void; onCancel?: () => void }) {
+  const [artists, setArtists] = useState<any[]>([]);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      mobile: "",
+      notes: "",
+      artists: [],
+      venues: [],
+      clients: [],
+      locations: [],
+      suppliers: [],
+    },
+  });
+
+  // DRAFT SYSTEM
+  const { saveDraft, completeSave, draftStatus, loadDraft } = useFormDraft({
+    table: "contacts",
+    formId: contactId,
+    form,
+  });
+
+  useEffect(() => {
+    if (!contactId) loadDraft();
+
+    supabase.from("artists").select("id,name").order("name").then(({ data }) => setArtists(data || []));
+    supabase.from("venues").select("id,name").order("name").then(({ data }) => setVenues(data || []));
+    supabase.from("clients").select("id,name").order("name").then(({ data }) => setClients(data || []));
+    supabase.from("locations").select("id,name").order("name").then(({ data }) => setLocations(data || []));
+    supabase.from("suppliers").select("id,name").order("name").then(({ data }) => setSuppliers(data || []));
+
+    if (contactId) fetchRelationships(contactId);
+  }, [contactId]);
+
+  // Load existing links
+  const fetchRelationships = async (id: string) => {
+    const relTables = [
+      { table: "contact_artists", key: "artist_id", formKey: "artists" },
+      { table: "contact_venues", key: "venue_id", formKey: "venues" },
+      { table: "contact_clients", key: "client_id", formKey: "clients" },
+      { table: "contact_locations", key: "location_id", formKey: "locations" },
+      { table: "contact_suppliers", key: "supplier_id", formKey: "suppliers" },
+    ];
+
+    for (const rel of relTables) {
+      const { data } = await supabase.from(rel.table).select(`id, ${rel.key}, role`).eq("contact_id", id);
+      form.setValue(rel.formKey as any, data || []);
+    }
+  };
+
+  // Utility for adding link
+  const addRelation = (formKey: string, id: string) => {
+    const curr = form.getValues(formKey as any) || [];
+    if (curr.some((c: any) => c.id === id)) return;
+
+    form.setValue(formKey as any, [...curr, { id, role: "general" }]);
+    saveDraft();
+  };
+
+  const removeRelation = (formKey: string, id: string) => {
+    const curr = form.getValues(formKey as any) || [];
+    form.setValue(
+      formKey as any,
+      curr.filter((c: any) => c.id !== id)
+    );
+    saveDraft();
+  };
+
+  // Final submit = save contact + all relations
+  const onSubmit = async (values: ContactFormData) => {
+    const result = await completeSave({
+      ...values,
+      status: "active",
+    });
+
+    if (result.error) {
+      toast.error("Save failed");
+      return;
+    }
+
+    const contact_id = contactId || result.data?.id;
+
+    // Save relationships:
+    const relMap = [
+      { formKey: "artists", table: "contact_artists", key: "artist_id" },
+      { formKey: "venues", table: "contact_venues", key: "venue_id" },
+      { formKey: "clients", table: "contact_clients", key: "client_id" },
+      { formKey: "locations", table: "contact_locations", key: "location_id" },
+      { formKey: "suppliers", table: "contact_suppliers", key: "supplier_id" },
+    ];
+
+    for (const rel of relMap) {
+      // Clear existing
+      await supabase.from(rel.table).delete().eq("contact_id", contact_id);
+
+      // Insert new
+      const links = values[rel.formKey as keyof ContactFormData] as any[];
+      if (links?.length) {
+        const rows = links.map((l) => ({
+          contact_id,
+          [rel.key]: l.id,
+          role: l.role,
+        }));
+        await supabase.from(rel.table).insert(rows);
+      }
+    }
+
+    toast.success("Contact saved!");
+    onSuccess?.();
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+        {/* BASIC INFO */}
+        <FormField name="name" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl><Input {...field} onBlur={saveDraft} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField name="email" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl><Input {...field} onBlur={saveDraft} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField name="phone" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Phone</FormLabel>
+            <FormControl><Input {...field} onBlur={saveDraft} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField name="mobile" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Mobile</FormLabel>
+            <FormControl><Input {...field} onBlur={saveDraft} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+
+        <FormField name="notes" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Notes</FormLabel>
+            <FormControl><Textarea {...field} className="min-h-[100px]" onBlur={saveDraft} /></FormControl>
+          </FormItem>
+        )} />
+
+        {/* RELATION SECTIONS */}
+        {[
+          { title: "Artists", list: artists, key: "artists" },
+          { title: "Venues", list: venues, key: "venues" },
+          { title: "Clients", list: clients, key: "clients" },
+          { title: "Locations", list: locations, key: "locations" },
+          { title: "Suppliers", list: suppliers, key: "suppliers" },
+        ].map((group) => (
+          <div key={group.key} className="space-y-2">
+            <FormLabel>{group.title}</FormLabel>
+
+            <div className="flex flex-wrap gap-2">
+              {(form.watch(group.key) || []).map((rel: any) => {
+                const item = group.list.find((i) => i.id === rel.id);
+                return (
+                  <ContactChip
+                    key={rel.id}
+                    label={item?.name || "Unknown"}
+                    role={rel.role}
+                    onRemove={() => removeRelation(group.key, rel.id)}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <Select onValueChange={(id) => addRelation(group.key, id)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder={`Add ${group.title.slice(0, -1)}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {group.list.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Role selector for last added */}
+              <Select
+                onValueChange={(role) => {
+                  const curr = form.getValues(group.key) || [];
+                  if (curr.length === 0) return;
+                  curr[curr.length - 1].role = role;
+                  form.setValue(group.key as any, [...curr]);
+                  saveDraft();
+                }}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTACT_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ))}
+
+        {/* ACTIONS */}
+        <div className="flex gap-3 items-center">
+          <Button type="button" variant="outline" onClick={() => saveDraft()}>Save Draft</Button>
+          <Button type="submit">Save Contact</Button>
+          {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+          <DraftIndicator status={draftStatus} />
+        </div>
+
+      </form>
+    </Form>
+  );
+}
+src/lib/relationshipRoles.ts
+export const UNIVERSAL_ROLES = [
+  "Primary",
+  "Secondary",
+  "Manager",
+  "Accounts",
+  "Technical",
+  "Agent",
+  "Booker",
+  "Support",
+  "Contact",
+] as const;
+src/components/RelationBadge.tsx
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export function RelationBadge({ label, role, onRemove }) {
+  return (
+    <div className="flex items-center gap-2 bg-secondary px-3 py-1 rounded-full text-sm">
+      <span>{label}</span>
+      {role && <span className="text-muted-foreground">({role})</span>}
+      <Button variant="ghost" size="icon" className="h-4 w-4" onClick={onRemove}>
+        <X size={12} />
+      </Button>
+    </div>
+  );
+}
+src/lib/relationshipGroups.ts
+export const REL_GROUPS = {
+  artists: { title: "Artists", key: "artists" },
+  clients: { title: "Clients", key: "clients" },
+  venues: { title: "Venues", key: "venues" },
+  locations: { title: "Locations", key: "locations" },
+  suppliers: { title: "Suppliers", key: "suppliers" },
+  contacts: { title: "Contacts", key: "contacts" },
+};
+const { saveDraft, completeSave, draftStatus, loadDraft } = useFormDraft({
+  table: 'TABLE_NAME',
+  formId: entityId,
+  form,
+});
+<div className="flex gap-3 items-center">
+  <Button type="button" variant="outline" onClick={() => saveDraft()}>
+    Save Draft
+  </Button>
+  <Button type="submit">Save {entityName}</Button>
+  {onCancel && (
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onCancel}
+    >
+      Cancel
+    </Button>
+  )}
+  <DraftIndicator status={draftStatus} />
+</div>
+const onSubmit = async (values) => {
+  await completeSave(values);
+  onSuccess?.();
+};
+table: 'TABLE_NAME',
+formId: entityId,
+form,
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toast } from 'sonner';
+
+const contactSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().email('Invalid email').optional(),
+  mobile: z.string().optional(),
+  role: z.string().optional(),  // e.g., 'ents_contact', 'accounts'
+  notes: z.string().optional(),
+  entity_type: z.enum(['client', 'artist', 'venue', 'supplier', 'location']).optional(),
+  entity_id: z.string().optional(),  // ID of linked entity
+  status: z.enum(['draft', 'active']).default('draft'),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
+
+interface ContactFormProps {
+  contactId?: string;
+  entityType?: string;  // Passed from modal (e.g., 'client')
+  entityId?: string;  // Pre-fill linked ID
+  onSuccess?: (newId: string) => void;  // Callback for inline add
+  onCancel?: () => void;
+}
+
+export function ContactForm({ contactId, entityType, entityId, onSuccess, onCancel }: ContactFormProps) {
+  const [saving, setSaving] = useState(false);
+  const [draftStatus, setDraftStatus] = useState('idle');  // For indicator
+
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      mobile: '',
+      role: '',
+      notes: '',
+      entity_type: entityType,
+      entity_id: entityId,
+    },
+  });
+
+  useEffect(() => {
+    if (entityType) form.setValue('entity_type', entityType);
+    if (entityId) form.setValue('entity_id', entityId);
+  }, [entityType, entityId]);
+
+  useEffect(() => {
+    if (contactId) {
+      fetchContact();
+    }
+  }, [contactId]);
+
+  const fetchContact = async () => {
+    if (!contactId) return;
+    const { data, error } = await supabase.from('contacts').select('*').eq('id', contactId).single();
+    if (error) {
+      toast.error('Failed to load contact');
+      return;
+    }
+    if (data) {
+      form.reset(data);
+    }
+  };
+
+  const handleSaveDraft = async (values: ContactFormData) => {
+    setSaving(true);
+    setDraftStatus('saving');
+    const upsertData = { ...values, status: 'draft' };
+    const { error } = await supabase.from('contacts').upsert(upsertData);
+    if (error) {
+      toast.error('Draft save failed');
+      setDraftStatus('error');
+    } else {
+      toast.success('Auto-saved as draft!');
+      setDraftStatus('saved');
+    }
+    setSaving(false);
+  };
+
+  // Auto-save draft on change (debounce 2s)
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (Object.keys(value).some(key => value[key] !== '')) {  // If any field filled
+        const timer = setTimeout(() => handleSaveDraft(value), 2000);
+        return () => clearTimeout(timer);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch()]);
+
+  const completeSave = async (values: ContactFormData) => {
+    setSaving(true);
+    setDraftStatus('saving');
+    const upsertData = { ...values, status: 'active' };
+    const { data: result, error } = await supabase.from('contacts').upsert(upsertData).select().single();
+    if (error) throw error;
+    setDraftStatus('idle');
+    return result.id;
+  };
+
+  const onSubmit = async (values: ContactFormData) => {
+    try {
+      const newId = await completeSave(values);
+      toast.success(contactId ? 'Contact updated!' : 'Contact created!');
+      onSuccess?.(newId);
+    } catch (err: any) {
+      toast.error(err.message || 'Contact save failed');
+      setDraftStatus('error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contact Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. John Doe" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="contact@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="mobile"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mobile</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. +44 123 456 7890" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="ents">Ents Contact</SelectItem>
+                  <SelectItem value="accounts">Accounts</SelectItem>
+                  <SelectItem value="technical">Technical</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="booker">Booker</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="emergency">Emergency</SelectItem>
+                  <SelectItem value="agent">Agent</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="gm">General Manager</SelectItem>
+                  <SelectItem value="site_manager">Site Manager</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="entity_type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Entity Type</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select entity type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="artist">Artist</SelectItem>
+                  <SelectItem value="venue">Venue</SelectItem>
+                  <SelectItem value="supplier">Supplier</SelectItem>
+                  <SelectItem value="location">Location</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="entity_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Entity ID (Auto-filled)</FormLabel>
+              <FormControl>
+                <Input placeholder="Auto-set on save" {...field} disabled />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Add any additional notes..." className="min-h-[100px]" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex gap-3 items-center">
+          <Button type="button" variant="outline" onClick={() => handleSaveDraft(form.getValues())} disabled={saving}>
+            {saving ? 'Saving Draft...' : 'Save Draft'}
+          </Button>
+
+          <Button type="submit" disabled={saving}>
+            {saving ? 'Saving...' : contactId ? 'Update Contact' : 'Create Contact'}
+          </Button>
+
+          {onCancel && (
+            <Button variant="ghost" type="button" onClick={onCancel} disabled={saving}>
+              Cancel
+            </Button>
+          )}
+
+          {draftStatus === 'saving' && <span className="text-sm text-yellow-600">Saving...</span>}
+          {draftStatus === 'saved' && <span className="text-sm text-green-600">Saved!</span>}
+          {draftStatus === 'error' && <span className="text-sm text-red-600">Error—retry?</span>}
+        </div>
+      </form>
+    </Form>
+  );
+}
