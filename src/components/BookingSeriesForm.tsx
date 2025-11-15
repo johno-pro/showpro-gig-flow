@@ -40,11 +40,20 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, serie
     },
   });
 
-  const { saveDraft, loadDraft, draftStatus } = useFormDraft({
+  const { saveDraft, loadDraft, completeSave, draftStatus } = useFormDraft({
     table: "booking_series",
     formId: seriesId,
     form,
   });
+
+  const handleSubmit = async (data: BookingSeriesFormValues) => {
+    try {
+      await completeSave(data);
+      onSubmit(data);
+    } catch (error: any) {
+      console.error("Failed to save booking series:", error);
+    }
+  };
 
   useEffect(() => {
     if (!seriesId && !defaultValues) {
@@ -66,7 +75,8 @@ export function BookingSeriesForm({ defaultValues, onSubmit, isSubmitting, serie
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <DraftIndicator status={draftStatus} />
         <FormField
           control={form.control}
           name="name"

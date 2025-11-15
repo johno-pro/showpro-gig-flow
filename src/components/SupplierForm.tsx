@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useEntityContacts } from "@/hooks/useEntityContacts";
 
 const supplierFormSchema = z.object({
   name: z.string().trim().optional(),
@@ -60,11 +62,18 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
     },
   });
 
-  const { saveDraft, completeSave, draftStatus } = useFormDraft({
+  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
     table: "suppliers",
     formId: supplierId,
     form,
   });
+
+  const {
+    contacts,
+    selectedContactIds,
+    setSelectedContactIds,
+    saveEntityContacts,
+  } = useEntityContacts("supplier", supplierId);
 
   useEffect(() => {
     if (supplierId) {
@@ -109,7 +118,7 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
     setLoading(true);
     try {
       const supplierData = {
-        name: values.name.trim(),
+        name: values.name?.trim() || "",
         address: values.address?.trim() || null,
         company_number: values.company_number?.trim() || null,
         vat_number: values.vat_number?.trim() || null,
@@ -122,7 +131,13 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
         notes: values.notes?.trim() || null,
       };
 
-      await completeSave(supplierData);
+      const savedData = await completeSave(supplierData as any);
+      const supplierIdToUse = supplierId || (savedData as any)?.id || draftId;
+      
+      if (supplierIdToUse && selectedContactIds.length > 0) {
+        await saveEntityContacts(supplierIdToUse, selectedContactIds);
+      }
+      
       toast.success(supplierId ? "Supplier updated successfully" : "Supplier created successfully");
       onSuccess?.();
     } catch (error: any) {
@@ -302,12 +317,23 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
                   placeholder="Add any additional notes..."
                   className="min-h-[100px]"
                   {...field}
+                  onBlur={() => { field.onBlur(); saveDraft(); }}
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <div>
+          <FormLabel>Contacts</FormLabel>
+          <MultiSelect
+            options={contacts.map(c => ({ value: c.id, label: c.name }))}
+            selected={selectedContactIds}
+            onChange={setSelectedContactIds}
+            placeholder="Select contacts..."
+          />
+        </div>
 
         <div className="flex items-center justify-between">
           <DraftIndicator status={draftStatus} />
