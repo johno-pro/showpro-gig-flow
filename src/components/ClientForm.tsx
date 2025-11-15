@@ -13,10 +13,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useEntityContacts } from "@/hooks/useEntityContacts";
 
 const clientFormSchema = z.object({
   name: z.string().trim().optional(),
@@ -45,6 +48,13 @@ interface ClientFormProps {
 
 export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
   const [loading, setLoading] = useState(false);
+  
+  const {
+    contacts,
+    selectedContactIds,
+    setSelectedContactIds,
+    saveEntityContacts,
+  } = useEntityContacts("client", clientId);
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
@@ -132,9 +142,29 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
         billing_address: values.billing_address?.trim() || null,
         invoice_preferences: values.invoice_preferences?.trim() || null,
         notes: values.notes?.trim() || null,
+        status: "active",
       };
 
-      await completeSave(clientData);
+      let savedClientId = clientId;
+
+      if (clientId) {
+        await completeSave(clientData);
+      } else {
+        const { data: newClient, error } = await supabase
+          .from("clients")
+          .insert([clientData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        savedClientId = newClient.id;
+      }
+
+      // Save contact relationships
+      if (savedClientId) {
+        await saveEntityContacts(savedClientId, selectedContactIds);
+      }
+
       toast.success(clientId ? "Client updated successfully" : "Client created successfully");
       onSuccess?.();
     } catch (error: any) {
@@ -367,6 +397,23 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Related Contacts</h3>
+          <div>
+            <label className="text-sm font-medium">Contacts</label>
+            <p className="text-sm text-muted-foreground mb-2">
+              Link contacts to this client. Contacts can be used for bookings and communications.
+            </p>
+            <MultiSelect
+              options={contacts.map((c) => ({ value: c.id, label: c.name }))}
+              selected={selectedContactIds}
+              onChange={setSelectedContactIds}
+              placeholder="Select contacts..."
+              disabled={loading}
+            />
+          </div>
+        </div>
 
         <div className="flex items-center justify-between">
           <DraftIndicator status={draftStatus} />

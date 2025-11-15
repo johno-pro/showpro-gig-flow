@@ -464,6 +464,272 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_artists: {
+        Row: {
+          artist_id: string
+          contact_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          role: string | null
+        }
+        Insert: {
+          artist_id: string
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+        }
+        Update: {
+          artist_id?: string
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_artists_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_artists_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists_for_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_artists_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_artists_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_clients: {
+        Row: {
+          client_id: string
+          contact_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          role: string | null
+        }
+        Insert: {
+          client_id: string
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+        }
+        Update: {
+          client_id?: string
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_clients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_clients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_locations: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          location_id: string
+          role: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          location_id: string
+          role?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          location_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_locations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_locations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_basic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_suppliers: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          role: string | null
+          supplier_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+          supplier_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_suppliers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_suppliers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers_basic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_venues: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          role: string | null
+          venue_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+          venue_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          role?: string | null
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_venues_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_venues_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_venues_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           client_id: string | null
