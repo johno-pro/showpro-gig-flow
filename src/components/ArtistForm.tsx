@@ -26,6 +26,8 @@ import { Upload, FileText, X } from "lucide-react";
 import { sanitizeText, sanitizeFileName } from "@/lib/sanitize";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { DraftIndicator } from "@/components/ui/draft-indicator";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useEntityContacts } from "@/hooks/useEntityContacts";
 
 const artistFormSchema = z.object({
   name: z.string().trim().optional(),
@@ -54,6 +56,13 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [existingInvoiceUrl, setExistingInvoiceUrl] = useState<string | null>(null);
+
+  const {
+    contacts,
+    selectedContactIds,
+    setSelectedContactIds,
+    saveEntityContacts,
+  } = useEntityContacts("artist", artistId);
 
   const form = useForm<ArtistFormValues>({
     resolver: zodResolver(artistFormSchema),
@@ -192,13 +201,33 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
         email: values.email ? sanitizeText(values.email, 255) : null,
         phone: values.phone ? sanitizeText(values.phone, 20) : null,
         invoice_upload_url: invoiceUrl,
-        buy_fee: values.buy_fee,
-        sell_fee: values.sell_fee,
-        vat_rate: values.vat_rate,
+        buy_fee: values.buy_fee ? parseFloat(values.buy_fee) : null,
+        sell_fee: values.sell_fee ? parseFloat(values.sell_fee) : null,
+        vat_rate: values.vat_rate ? parseFloat(values.vat_rate) : null,
         notes: values.notes ? sanitizeText(values.notes, 2000) : null,
+        status: "active",
       };
 
-      await completeSave(artistData as any);
+      let savedArtistId = artistId;
+
+      if (artistId) {
+        await completeSave(artistData as any);
+      } else {
+        const { data: newArtist, error } = await supabase
+          .from("artists")
+          .insert([artistData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        savedArtistId = newArtist.id;
+      }
+
+      // Save contact relationships
+      if (savedArtistId) {
+        await saveEntityContacts(savedArtistId, selectedContactIds);
+      }
+
       toast.success(artistId ? "Artist updated successfully" : "Artist created successfully");
       onSuccess?.();
     } catch (error: any) {
@@ -453,6 +482,23 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Related Contacts</h3>
+          <div>
+            <label className="text-sm font-medium">Contacts</label>
+            <p className="text-sm text-muted-foreground mb-2">
+              Link contacts to this artist for communications and bookings.
+            </p>
+            <MultiSelect
+              options={contacts.map((c) => ({ value: c.id, label: c.name }))}
+              selected={selectedContactIds}
+              onChange={setSelectedContactIds}
+              placeholder="Select contacts..."
+              disabled={loading}
+            />
+          </div>
+        </div>
 
         <div className="flex items-center justify-between">
           <DraftIndicator status={draftStatus} />
