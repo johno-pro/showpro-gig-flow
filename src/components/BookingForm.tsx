@@ -90,7 +90,6 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
 
   const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "bookings",
-    formId: bookingId,
     form,
   });
 

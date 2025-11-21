@@ -46,7 +46,6 @@ export function InvoiceBatchForm({ defaultValues, onSubmit, isSubmitting, invoic
 
   const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "invoice_batches",
-    formId: invoiceBatchId,
     form,
   });
 

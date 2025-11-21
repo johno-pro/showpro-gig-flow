@@ -49,9 +49,8 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
     },
   });
 
-  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "departments",
-    formId: departmentId,
     form,
   });
 
@@ -164,7 +163,7 @@ export function DepartmentForm({ departmentId, onSuccess, onCancel }: Department
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : departmentId || draftId ? "Update Department" : "Create Department"}
+            {loading ? "Saving..." : departmentId ? "Update Department" : "Create Department"}
           </Button>
           <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
             Save Draft

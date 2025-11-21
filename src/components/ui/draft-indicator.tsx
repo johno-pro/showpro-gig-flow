@@ -46,21 +46,3 @@ export function DraftIndicator({ status }: DraftIndicatorProps) {
     </div>
   );
 }
-import { Badge } from "@/components/ui/badge";
-
-interface DraftIndicatorProps {
-  status: "idle" | "saving" | "saved" | "error";
-}
-
-export function DraftIndicator({ status }: DraftIndicatorProps) {
-  switch (status) {
-    case "saving":
-      return <Badge variant="secondary">Saving...</Badge>;
-    case "saved":
-      return <Badge variant="default">Saved!</Badge>;
-    case "error":
-      return <Badge variant="destructive">Error</Badge>;
-    default:
-      return null;
-  }
-}

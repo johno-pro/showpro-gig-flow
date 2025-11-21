@@ -83,7 +83,6 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
 
   const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "artists",
-    formId: artistId,
     form,
   });
 
