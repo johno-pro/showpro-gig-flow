@@ -69,9 +69,8 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
     },
   });
 
-  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "locations",
-    formId: locationId,
     form,
   });
 
@@ -140,7 +139,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
     setLoading(true);
     try {
       const savedData = await completeSave(values);
-      const locationIdToUse = locationId || (savedData as any)?.id || draftId;
+      const locationIdToUse = locationId || (savedData as any)?.id;
       
       if (locationIdToUse && selectedContactIds.length > 0) {
         await saveEntityContacts(locationIdToUse, selectedContactIds);

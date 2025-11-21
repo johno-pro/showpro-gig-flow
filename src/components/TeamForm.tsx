@@ -37,15 +37,14 @@ export function TeamForm({ defaultValues, onSubmit, isSubmitting, teamId }: Team
     },
   });
 
-  const { saveDraft, loadDraft, draftStatus } = useFormDraft({
+  const { saveDraft, loadLatestDraft, draftStatus, completeSave } = useFormDraft({
     table: "teams",
-    formId: teamId,
     form,
   });
 
   useEffect(() => {
     if (!teamId && !defaultValues) {
-      loadDraft();
+      loadLatestDraft();
     }
   }, [teamId, defaultValues]);
 

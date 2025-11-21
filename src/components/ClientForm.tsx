@@ -78,7 +78,6 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
 
   const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "clients",
-    formId: clientId,
     form,
   });
 

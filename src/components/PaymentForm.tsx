@@ -43,7 +43,6 @@ export function PaymentForm({ defaultValues, onSubmit, isSubmitting, paymentId }
 
   const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "payments",
-    formId: paymentId,
     form,
   });
 

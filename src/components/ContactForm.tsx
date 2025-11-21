@@ -73,7 +73,6 @@ export function ContactForm({ contactId, onSuccess, onCancel }: ContactFormProps
 
   const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "contacts",
-    formId: contactId,
     form,
   });
 

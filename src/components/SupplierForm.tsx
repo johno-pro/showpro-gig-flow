@@ -62,9 +62,8 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
     },
   });
 
-  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "suppliers",
-    formId: supplierId,
     form,
   });
 
@@ -132,7 +131,7 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
       };
 
       const savedData = await completeSave(supplierData as any);
-      const supplierIdToUse = supplierId || (savedData as any)?.id || draftId;
+      const supplierIdToUse = supplierId || (savedData as any)?.id;
       
       if (supplierIdToUse && selectedContactIds.length > 0) {
         await saveEntityContacts(supplierIdToUse, selectedContactIds);

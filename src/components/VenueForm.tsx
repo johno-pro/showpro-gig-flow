@@ -56,9 +56,8 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
     },
   });
 
-  const { saveDraft, completeSave, draftStatus, draftId } = useFormDraft({
+  const { saveDraft, completeSave, draftStatus } = useFormDraft({
     table: "venues",
-    formId: venueId,
     form,
   });
 
@@ -121,7 +120,7 @@ export function VenueForm({ venueId, onSuccess, onCancel }: VenueFormProps) {
     setLoading(true);
     try {
       const savedData = await completeSave(values);
-      const venueIdToUse = venueId || (savedData as any)?.id || draftId;
+      const venueIdToUse = venueId || (savedData as any)?.id;
       
       if (venueIdToUse && selectedContactIds.length > 0) {
         await saveEntityContacts(venueIdToUse, selectedContactIds);
