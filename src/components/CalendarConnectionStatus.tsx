@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, CheckCircle2, XCircle, Unplug } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 export function CalendarConnectionStatus() {
   const [isConnected, setIsConnected] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     loadConnectionStatus();
@@ -40,6 +43,55 @@ export function CalendarConnectionStatus() {
 
   const isExpired = expiryDate && expiryDate < new Date();
   const isExpiringSoon = expiryDate && expiryDate.getTime() - Date.now() < 24 * 60 * 60 * 1000;
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Get current token to revoke
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('google_calendar_token')
+        .eq('id', user.id)
+        .single();
+
+      // Revoke token with Google
+      if (profile?.google_calendar_token) {
+        try {
+          await fetch(`https://oauth2.googleapis.com/revoke?token=${profile.google_calendar_token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          });
+        } catch (error) {
+          console.warn('Failed to revoke token with Google:', error);
+          // Continue anyway to clear local tokens
+        }
+      }
+
+      // Clear tokens from database
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          google_calendar_token: null,
+          google_calendar_refresh_token: null,
+          google_calendar_token_expiry: null,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setIsConnected(false);
+      setExpiryDate(null);
+      toast.success('Google Calendar disconnected');
+    } catch (error: any) {
+      console.error('Disconnect error:', error);
+      toast.error('Failed to disconnect calendar');
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -115,6 +167,19 @@ export function CalendarConnectionStatus() {
           <p className="text-xs text-muted-foreground">
             Connect your Google Calendar to sync bookings and check for clashes
           </p>
+        )}
+
+        {isConnected && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Unplug className="h-4 w-4 mr-2" />
+            {disconnecting ? 'Disconnecting...' : 'Disconnect Calendar'}
+          </Button>
         )}
       </CardContent>
     </Card>
