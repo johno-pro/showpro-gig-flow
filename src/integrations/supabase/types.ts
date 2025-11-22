@@ -1190,6 +1190,9 @@ export type Database = {
           email: string | null
           email_preferences: Json | null
           full_name: string | null
+          google_calendar_refresh_token: string | null
+          google_calendar_token: string | null
+          google_calendar_token_expiry: string | null
           id: string
           notification_settings: Json | null
           updated_at: string | null
@@ -1200,6 +1203,9 @@ export type Database = {
           email?: string | null
           email_preferences?: Json | null
           full_name?: string | null
+          google_calendar_refresh_token?: string | null
+          google_calendar_token?: string | null
+          google_calendar_token_expiry?: string | null
           id: string
           notification_settings?: Json | null
           updated_at?: string | null
@@ -1210,6 +1216,9 @@ export type Database = {
           email?: string | null
           email_preferences?: Json | null
           full_name?: string | null
+          google_calendar_refresh_token?: string | null
+          google_calendar_token?: string | null
+          google_calendar_token_expiry?: string | null
           id?: string
           notification_settings?: Json | null
           updated_at?: string | null
