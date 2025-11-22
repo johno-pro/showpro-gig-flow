@@ -2,12 +2,13 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet, CalendarDays, Database, Search, Shield, Settings } from "lucide-react";
+import { Calendar, Users, MapPin, Briefcase, DollarSign, FileText, LogOut, LayoutDashboard, Upload, Building2, UserCircle, Truck, UsersRound, FileStack, Repeat, Receipt, Mail, ScrollText, FileSpreadsheet, CalendarDays, Database, Search, Shield, Settings, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "User Management", href: "/admin/users", icon: Shield },
+  { name: "Roles & Permissions", href: "/admin/roles", icon: ShieldCheck },
   { name: "Diary", href: "/diary", icon: CalendarDays },
   { name: "Job Explorer", href: "/job-explorer", icon: Search },
   { name: "Bookings", href: "/bookings", icon: Calendar },
