@@ -26,6 +26,8 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          post_multiplier: number | null
+          pre_multiplier: number | null
           sell_fee: number | null
           status: string | null
           supplier_id: string | null
@@ -44,6 +46,8 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          post_multiplier?: number | null
+          pre_multiplier?: number | null
           sell_fee?: number | null
           status?: string | null
           supplier_id?: string | null
@@ -62,6 +66,8 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          post_multiplier?: number | null
+          pre_multiplier?: number | null
           sell_fee?: number | null
           status?: string | null
           supplier_id?: string | null
@@ -154,6 +160,7 @@ export type Database = {
           financial_type: Database["public"]["Enums"]["financial_mode"] | null
           finish_date: string | null
           finish_time: string | null
+          gig_type_id: string | null
           id: string
           invoice_status: string | null
           invoiced: boolean | null
@@ -208,6 +215,7 @@ export type Database = {
           financial_type?: Database["public"]["Enums"]["financial_mode"] | null
           finish_date?: string | null
           finish_time?: string | null
+          gig_type_id?: string | null
           id?: string
           invoice_status?: string | null
           invoiced?: boolean | null
@@ -262,6 +270,7 @@ export type Database = {
           financial_type?: Database["public"]["Enums"]["financial_mode"] | null
           finish_date?: string | null
           finish_time?: string | null
+          gig_type_id?: string | null
           id?: string
           invoice_status?: string | null
           invoiced?: boolean | null
@@ -338,6 +347,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_gig_type_id_fkey"
+            columns: ["gig_type_id"]
+            isOneToOne: false
+            referencedRelation: "gig_types"
             referencedColumns: ["id"]
           },
           {
@@ -916,6 +932,30 @@ export type Database = {
           },
         ]
       }
+      gig_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          post_multiplier: number | null
+          pre_multiplier: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          post_multiplier?: number | null
+          pre_multiplier?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          post_multiplier?: number | null
+          pre_multiplier?: number | null
+        }
+        Relationships: []
+      }
       invoice_batches: {
         Row: {
           batch_date: string
@@ -1315,32 +1355,41 @@ export type Database = {
       }
       venues: {
         Row: {
+          buffer_hours: number | null
           capacity: number | null
           created_at: string | null
           id: string
           location_id: string | null
           name: string
           notes: string | null
+          post_multiplier: number | null
+          pre_multiplier: number | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          buffer_hours?: number | null
           capacity?: number | null
           created_at?: string | null
           id?: string
           location_id?: string | null
           name: string
           notes?: string | null
+          post_multiplier?: number | null
+          pre_multiplier?: number | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          buffer_hours?: number | null
           capacity?: number | null
           created_at?: string | null
           id?: string
           location_id?: string | null
           name?: string
           notes?: string | null
+          post_multiplier?: number | null
+          pre_multiplier?: number | null
           status?: string | null
           updated_at?: string | null
         }
