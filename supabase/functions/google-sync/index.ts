@@ -90,9 +90,9 @@ serve(async (req) => {
     if (action === 'export') {
       if (!profile?.google_calendar_token) {
         // Return OAuth URL
-        const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sync/callback`;
+        const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-oauth-callback`;
         const scope = 'https://www.googleapis.com/auth/calendar.events';
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&state=${user.id}`;
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${user.id}`;
 
         return new Response(
           JSON.stringify({ authUrl }),
