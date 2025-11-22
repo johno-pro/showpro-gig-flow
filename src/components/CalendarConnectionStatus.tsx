@@ -12,6 +12,7 @@ export function CalendarConnectionStatus() {
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
 
   useEffect(() => {
     loadConnectionStatus();
@@ -93,6 +94,43 @@ export function CalendarConnectionStatus() {
     }
   };
 
+  const handleReconnect = async () => {
+    setReconnecting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeader = session ? `Bearer ${session.access_token}` : '';
+
+      const { data, error } = await supabase.functions.invoke('google-sync', {
+        body: { bookingId: 'reconnect', action: 'export', authHeader }
+      });
+
+      if (error) throw error;
+
+      if (data.authUrl) {
+        // Open OAuth flow in popup
+        const popup = window.open(data.authUrl, 'Google Calendar', 'width=600,height=600');
+        
+        // Poll for completion
+        const checkInterval = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkInterval);
+            // Reload connection status after popup closes
+            setTimeout(() => {
+              loadConnectionStatus();
+            }, 1000);
+          }
+        }, 500);
+
+        toast.success('Opening Google authorization...');
+      }
+    } catch (error: any) {
+      console.error('Reconnect error:', error);
+      toast.error('Failed to reconnect calendar');
+    } finally {
+      setReconnecting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -164,9 +202,21 @@ export function CalendarConnectionStatus() {
         )}
 
         {!isConnected && (
-          <p className="text-xs text-muted-foreground">
-            Connect your Google Calendar to sync bookings and check for clashes
-          </p>
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              Connect your Google Calendar to sync bookings and check for clashes
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReconnect}
+              disabled={reconnecting}
+              className="w-full"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              {reconnecting ? 'Connecting...' : 'Connect Google Calendar'}
+            </Button>
+          </>
         )}
 
         {isConnected && (
