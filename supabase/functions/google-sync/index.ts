@@ -39,9 +39,57 @@ serve(async (req) => {
       .eq('id', user.id)
       .single();
 
+    // Helper function to refresh token if expired
+    const ensureValidToken = async () => {
+      if (!profile?.google_calendar_token || !profile?.google_calendar_refresh_token) {
+        return null;
+      }
+
+      const expiryDate = profile.google_calendar_token_expiry ? new Date(profile.google_calendar_token_expiry) : null;
+      const now = new Date();
+      
+      // Refresh if token expires within 5 minutes
+      if (!expiryDate || expiryDate.getTime() - now.getTime() < 5 * 60 * 1000) {
+        console.log('Token expired or expiring soon, refreshing...');
+        
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: clientId!,
+            client_secret: clientSecret!,
+            refresh_token: profile.google_calendar_refresh_token,
+            grant_type: 'refresh_token',
+          }),
+        });
+
+        if (!tokenResponse.ok) {
+          throw new Error('Failed to refresh token');
+        }
+
+        const tokens = await tokenResponse.json();
+        const newExpiryDate = new Date(Date.now() + tokens.expires_in * 1000);
+
+        // Update token in database
+        await supabase
+          .from('profiles')
+          .update({
+            google_calendar_token: tokens.access_token,
+            google_calendar_token_expiry: newExpiryDate.toISOString(),
+          })
+          .eq('id', user.id);
+
+        console.log('Token refreshed successfully');
+        return tokens.access_token;
+      }
+
+      return profile.google_calendar_token;
+    };
+
     // If importing calendar events
     if (action === 'import') {
-      if (!profile?.google_calendar_token) {
+      const validToken = await ensureValidToken();
+      if (!validToken) {
         throw new Error('No Google Calendar token found. Please connect your calendar first.');
       }
 
@@ -58,7 +106,7 @@ serve(async (req) => {
       const eventsResponse = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${new Date(Date.now() - 30*24*60*60*1000).toISOString()}&timeMax=${new Date(Date.now() + 365*24*60*60*1000).toISOString()}&singleEvents=true&orderBy=startTime`,
         {
-          headers: { Authorization: `Bearer ${profile.google_calendar_token}` }
+          headers: { Authorization: `Bearer ${validToken}` }
         }
       );
 
@@ -88,7 +136,8 @@ serve(async (req) => {
 
     // If exporting to Google Calendar
     if (action === 'export') {
-      if (!profile?.google_calendar_token) {
+      const validToken = await ensureValidToken();
+      if (!validToken) {
         // Return OAuth URL
         const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-oauth-callback`;
         const scope = 'https://www.googleapis.com/auth/calendar.events';
@@ -140,7 +189,7 @@ serve(async (req) => {
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${profile.google_calendar_token}`,
+            Authorization: `Bearer ${validToken}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(calendarEvent)
