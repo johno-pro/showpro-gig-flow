@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "User Management", href: "/admin/users", icon: Shield },
   { name: "Diary", href: "/diary", icon: CalendarDays },
   { name: "Job Explorer", href: "/job-explorer", icon: Search },
   { name: "Bookings", href: "/bookings", icon: Calendar },
@@ -27,7 +28,6 @@ const navigation = [
   { name: "Invoice Batches", href: "/invoice-batches", icon: FileStack },
   { name: "Import Data", href: "/import", icon: Upload },
   { name: "Data Management", href: "/data-management", icon: Database },
-  { name: "User Management", href: "/admin/users", icon: Shield },
   { name: "Profile Settings", href: "/profile-settings", icon: Settings },
 ];
 
