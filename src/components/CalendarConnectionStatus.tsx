@@ -16,7 +16,39 @@ export function CalendarConnectionStatus() {
 
   useEffect(() => {
     loadConnectionStatus();
+    checkForOAuthResult();
   }, []);
+
+  const checkForOAuthResult = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const calendarConnected = urlParams.get('calendar_connected');
+    const error = urlParams.get('error');
+
+    if (calendarConnected === 'true') {
+      toast.success('Google Calendar connected successfully!', {
+        description: 'You can now sync bookings and check for clashes'
+      });
+      // Reload connection status to show updated info
+      setTimeout(() => loadConnectionStatus(), 500);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error) {
+      const errorMessages: Record<string, string> = {
+        'access_denied': 'You denied access to Google Calendar. Please try again if you want to connect.',
+        'Missing authorization code or state': 'Authorization failed. Please try connecting again.',
+        'Failed to exchange authorization code': 'Could not complete authorization. Please check your internet connection and try again.',
+        'Failed to store calendar tokens': 'Could not save your calendar connection. Please try again or contact support.',
+      };
+
+      const friendlyMessage = errorMessages[error] || `Connection failed: ${error}`;
+      
+      toast.error('Failed to connect Google Calendar', {
+        description: friendlyMessage
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  };
 
   const loadConnectionStatus = async () => {
     try {
@@ -107,25 +139,14 @@ export function CalendarConnectionStatus() {
       if (error) throw error;
 
       if (data.authUrl) {
-        // Open OAuth flow in popup
-        const popup = window.open(data.authUrl, 'Google Calendar', 'width=600,height=600');
-        
-        // Poll for completion
-        const checkInterval = setInterval(() => {
-          if (popup?.closed) {
-            clearInterval(checkInterval);
-            // Reload connection status after popup closes
-            setTimeout(() => {
-              loadConnectionStatus();
-            }, 1000);
-          }
-        }, 500);
-
-        toast.success('Opening Google authorization...');
+        // Redirect to OAuth flow (will return to this page with status params)
+        window.location.href = data.authUrl;
       }
     } catch (error: any) {
       console.error('Reconnect error:', error);
-      toast.error('Failed to reconnect calendar');
+      toast.error('Failed to start connection', {
+        description: 'Please try again or contact support if the issue persists'
+      });
     } finally {
       setReconnecting(false);
     }
