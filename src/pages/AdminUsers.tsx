@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Shield, UserPlus, Mail } from "lucide-react";
 
-type UserRole = "admin" | "manager" | "artist";
+type UserRole = "admin" | "manager" | "artist" | "front_desk" | "view_only";
 
 interface UserWithRoles {
   id: string;
@@ -172,6 +172,10 @@ export default function AdminUsers() {
         return "default";
       case "artist":
         return "secondary";
+      case "front_desk":
+        return "outline";
+      case "view_only":
+        return "outline";
       default:
         return "outline";
     }
@@ -325,6 +329,8 @@ export default function AdminUsers() {
                 <SelectItem value="admin">Admin - Full access to all features</SelectItem>
                 <SelectItem value="manager">Manager - Manage bookings and data</SelectItem>
                 <SelectItem value="artist">Artist - View own bookings</SelectItem>
+                <SelectItem value="front_desk">Front Desk - Restricted access</SelectItem>
+                <SelectItem value="view_only">View Only - Read-only access</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -1632,6 +1632,10 @@ export type Database = {
         Args: { p_buy_fee: number; p_sell_fee: number }
         Returns: number
       }
+      create_user_profile: {
+        Args: { p_email: string; p_full_name?: string; p_user_id: string }
+        Returns: undefined
+      }
       generate_job_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1642,7 +1646,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "manager" | "artist"
+      app_role: "admin" | "manager" | "artist" | "front_desk" | "view_only"
       booking_status: "enquiry" | "pencil" | "confirmed" | "cancelled"
       fee_model: "commission" | "buy_sell"
       financial_mode: "commission" | "third_party"
@@ -1773,7 +1777,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "manager", "artist"],
+      app_role: ["admin", "manager", "artist", "front_desk", "view_only"],
       booking_status: ["enquiry", "pencil", "confirmed", "cancelled"],
       fee_model: ["commission", "buy_sell"],
       financial_mode: ["commission", "third_party"],
