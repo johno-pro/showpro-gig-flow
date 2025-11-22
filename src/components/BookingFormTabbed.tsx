@@ -15,6 +15,7 @@ import { formatGBP } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarSync } from './CalendarSync';
+import { CalendarConnectionStatus } from './CalendarConnectionStatus';
 
 const bookingSchema = z.object({
   artist_id: z.string().optional(),
@@ -504,9 +505,12 @@ export function BookingFormTabbed({
             />
 
             {bookingId && (
-              <div className="pt-4 border-t">
-                <div className="mb-2 text-sm font-medium">Calendar Export</div>
-                <CalendarSync bookingId={bookingId} bookingData={form.getValues()} />
+              <div className="pt-4 border-t space-y-4">
+                <CalendarConnectionStatus />
+                <div>
+                  <div className="mb-2 text-sm font-medium">Calendar Export</div>
+                  <CalendarSync bookingId={bookingId} bookingData={form.getValues()} />
+                </div>
               </div>
             )}
 
