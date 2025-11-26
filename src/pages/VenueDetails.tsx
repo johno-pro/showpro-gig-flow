@@ -28,6 +28,9 @@ export default function VenueDetails() {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [locations, setLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState("Main Stage");
+  const [newLocation, setNewLocation] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -38,18 +41,16 @@ export default function VenueDetails() {
   const fetchVenueData = async () => {
     try {
       const [venueRes, bookingsRes] = await Promise.all([
-        supabase
-          .from("venues")
-          .select("*")
-          .eq("id", id)
-          .maybeSingle(),
+        supabase.from("venues").select("*").eq("id", id).maybeSingle(),
         supabase
           .from("bookings")
-          .select(`
+          .select(
+            `
             *,
             artists (name),
             clients (name)
-          `)
+          `,
+          )
           .eq("venue_id", id)
           .order("booking_date", { ascending: false }),
       ]);
@@ -168,8 +169,7 @@ export default function VenueDetails() {
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This action cannot be undone. This will permanently delete the venue
-                  {bookings.length > 0 &&
-                    `. Note: This venue has ${bookings.length} booking(s) associated with it.`}
+                  {bookings.length > 0 && `. Note: This venue has ${bookings.length} booking(s) associated with it.`}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -215,6 +215,64 @@ export default function VenueDetails() {
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="space-y-3">
+            {/* Dropdown */}
+            <Select value={selectedLocation} onValueChange={(val) => setSelectedLocation(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Main Stage" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.name}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+
+                <Separator className="my-2" />
+
+                {/* ADD NEW OPTION */}
+                <SelectItem value="__add_new">+ Add</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Inline add box appears when user selects "+ Add" */}
+            {selectedLocation === "__add_new" && (
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  placeholder="New stage name"
+                />
+
+                <Button
+                  onClick={async () => {
+                    if (!newLocation.trim()) return;
+
+                    // Save new location in DB
+                    const { data, error } = await supabase
+                      .from("locations")
+                      .insert({
+                        name: newLocation,
+                        venue_id: venue.id,
+                      })
+                      .select();
+
+                    if (!error) {
+                      // Refresh locations
+                      setLocations([...locations, data[0]]);
+                      setSelectedLocation(newLocation);
+                      setNewLocation("");
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -233,21 +291,13 @@ export default function VenueDetails() {
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Confirmed Bookings</p>
-              <p className="mt-1 text-2xl font-semibold">
-                {bookings.filter((b) => b.status === "confirmed").length}
-              </p>
+              <p className="mt-1 text-2xl font-semibold">{bookings.filter((b) => b.status === "confirmed").length}</p>
             </div>
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Upcoming Bookings</p>
               <p className="mt-1 text-2xl font-semibold">
-                {
-                  bookings.filter(
-                    (b) =>
-                      new Date(b.booking_date) >= new Date() &&
-                      b.status !== "cancelled"
-                  ).length
-                }
+                {bookings.filter((b) => new Date(b.booking_date) >= new Date() && b.status !== "cancelled").length}
               </p>
             </div>
           </CardContent>
@@ -277,9 +327,7 @@ export default function VenueDetails() {
         </CardHeader>
         <CardContent>
           {bookings.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              No bookings yet for this venue
-            </div>
+            <div className="py-8 text-center text-muted-foreground">No bookings yet for this venue</div>
           ) : (
             <div className="space-y-3">
               {bookings.map((booking) => (
@@ -289,26 +337,16 @@ export default function VenueDetails() {
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-3">
-                      <p className="font-medium">
-                        {booking.artists?.name || "No artist"}
-                      </p>
-                      <Badge variant={getStatusBadgeVariant(booking.status)}>
-                        {booking.status}
-                      </Badge>
+                      <p className="font-medium">{booking.artists?.name || "No artist"}</p>
+                      <Badge variant={getStatusBadgeVariant(booking.status)}>{booking.status}</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {booking.clients?.name || "Unknown Client"}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{booking.clients?.name || "Unknown Client"}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{new Date(booking.booking_date).toLocaleDateString()}</span>
                       {booking.start_time && <span>{booking.start_time}</span>}
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/bookings/${booking.id}`)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/bookings/${booking.id}`)}>
                     View Details
                   </Button>
                 </div>
