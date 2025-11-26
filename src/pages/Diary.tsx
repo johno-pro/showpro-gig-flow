@@ -224,7 +224,8 @@ export default function Diary() {
 
   const getCalendarEvents = () => {
     return bookings.map((booking) => {
-      const status = booking.artist_status || booking.status;
+      // Use status as primary, fall back to artist_status only if status is empty
+      const status = booking.status || booking.artist_status;
       const isPlaceholder = booking.placeholder;
       
       // Define colors based on status to match the legend
