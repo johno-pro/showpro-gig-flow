@@ -78,8 +78,17 @@ export function BookingForm({
   const handleSaveDraft = async () => {
     setSaving(true);
     const values = form.getValues();
-    values.status = "draft";
-    const { error } = await supabase.from("bookings").upsert(values);
+    
+    const draftData = {
+      artist_id: values.artist_id || null,
+      venue_id: values.venue_id || null,
+      client_id: values.client_id || null,
+      notes: values.notes || null,
+      status: 'enquiry' as const,
+      booking_date: new Date().toISOString().split('T')[0],
+    };
+    
+    const { error } = await supabase.from("bookings").insert(draftData);
     toast[error ? "error" : "success"](error ? "Draft failed" : "Auto-saved draft!");
     setSaving(false);
   };
@@ -94,27 +103,24 @@ export function BookingForm({
     return () => sub.unsubscribe();
   }, [form.watch()]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: BookingFormData) => {
     setSaving(true);
     try {
-      // Buffer validation (RPC call to trigger logic)
-      const { data: bufferCheck, error: bufferError } = await supabase.rpc("validate_booking_overlaps_with_buffers", {
-        start_date: data.arrival_time,
-        end_date: data.performance_range.to,
-        artist_id: data.artist_id,
-        venue_id: data.venue_id,
-        gig_type_id: "default-gig", // From form or default
-        team_id: "your-team-id", // From Clerk
-      });
-      if (bufferError) throw bufferError;
+      const bookingData = {
+        artist_id: data.artist_id || null,
+        venue_id: data.venue_id || null,
+        client_id: data.client_id || null,
+        notes: data.notes || null,
+        status: 'enquiry' as const,
+        booking_date: new Date().toISOString().split('T')[0],
+      };
 
-      data.status = "pending";
-      const { data: result, error } = await supabase.from("bookings").insert(data);
+      const { error } = await supabase.from("bookings").insert(bookingData);
       if (error) throw error;
       toast.success("Booking created!");
       onSuccess?.();
-    } catch (err) {
-      toast.error(err.message || "Booking failed—check buffers?");
+    } catch (err: any) {
+      toast.error(err.message || "Booking failed");
     } finally {
       setSaving(false);
     }
