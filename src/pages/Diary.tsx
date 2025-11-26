@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,18 @@ export default function Diary() {
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [activeTab, setActiveTab] = useState("month");
+  const monthCalendarRef = useRef<FullCalendar>(null);
+  const weekCalendarRef = useRef<FullCalendar>(null);
+
+  // Sync calendar views with currentDate state
+  useEffect(() => {
+    if (monthCalendarRef.current) {
+      monthCalendarRef.current.getApi().gotoDate(currentDate);
+    }
+    if (weekCalendarRef.current) {
+      weekCalendarRef.current.getApi().gotoDate(currentDate);
+    }
+  }, [currentDate]);
 
   useEffect(() => {
     fetchData();
@@ -526,8 +538,10 @@ export default function Diary() {
           <Card className="h-full">
             <CardContent className="pt-6 h-full">
               <FullCalendar
+                ref={monthCalendarRef}
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
+                initialDate={currentDate}
                 events={getCalendarEvents()}
                 eventClick={handleEventClick}
                 headerToolbar={false}
@@ -547,8 +561,10 @@ export default function Diary() {
           <Card className="h-full">
             <CardContent className="pt-6 h-full">
               <FullCalendar
+                ref={weekCalendarRef}
                 plugins={[timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
+                initialDate={currentDate}
                 events={getCalendarEvents()}
                 eventClick={handleEventClick}
                 headerToolbar={false}
