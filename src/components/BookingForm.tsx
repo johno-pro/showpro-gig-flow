@@ -239,10 +239,10 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         venue_id: values.venue_id || null,
         artist_id: values.artist_id || null,
         fee_model: values.fee_model,
-        artist_fee: values.artist_fee,
-        client_fee: values.client_fee,
-        commission_rate: values.commission_rate,
-        deposit_amount: values.deposit_amount,
+        artist_fee: values.artist_fee ? parseFloat(values.artist_fee) : null,
+        client_fee: values.client_fee ? parseFloat(values.client_fee) : null,
+        commission_rate: values.commission_rate ? parseFloat(values.commission_rate) : null,
+        deposit_amount: values.deposit_amount ? parseFloat(values.deposit_amount) : null,
         vat_applicable: values.vat_applicable,
         deposit_paid: values.deposit_paid,
         balance_paid: values.balance_paid,
@@ -255,11 +255,25 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         notes: values.notes || null,
       };
 
-      await completeSave(bookingData as any);
+      // Save directly to Supabase to avoid status being overwritten by useFormDraft
+      if (bookingId) {
+        const { error } = await supabase
+          .from("bookings")
+          .update(bookingData)
+          .eq("id", bookingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("bookings")
+          .insert([bookingData]);
+        if (error) throw error;
+      }
+
       toast.success(bookingId ? "Booking updated successfully" : "Booking created successfully");
       onSuccess?.();
     } catch (error: any) {
-      toast.error("Failed to save booking");
+      console.error("Booking save error:", error);
+      toast.error(error.message || "Failed to save booking");
     } finally {
       setLoading(false);
     }
