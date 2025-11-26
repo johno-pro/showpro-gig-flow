@@ -212,14 +212,36 @@ export default function Diary() {
   const getCalendarEvents = () => {
     return bookings.map((booking) => {
       const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
+      
+      // Map Tailwind classes to CSS custom property colors
+      const colorMap: Record<string, string> = {
+        'bg-success': 'hsl(var(--success))',
+        'bg-warning': 'hsl(var(--warning))',
+        'bg-destructive': 'hsl(var(--destructive))',
+        'bg-muted': 'hsl(var(--muted))',
+        'bg-secondary': 'hsl(var(--secondary))',
+      };
+      
+      const textColorMap: Record<string, string> = {
+        'text-success-foreground': 'hsl(var(--success-foreground))',
+        'text-warning-foreground': 'hsl(var(--warning-foreground))',
+        'text-destructive-foreground': 'hsl(var(--destructive-foreground))',
+        'text-muted-foreground': 'hsl(var(--muted-foreground))',
+        'text-secondary-foreground': 'hsl(var(--secondary-foreground))',
+      };
+      
+      const startTime = booking.start_time || '09:00';
+      const endTime = booking.finish_time || '17:00';
+      const endDate = booking.finish_date || booking.start_date;
+      
       return {
         id: booking.id,
         title: `${booking.artists?.name || "TBA"} @ ${booking.locations?.name || "TBA"}`,
-        start: `${booking.start_date}T${booking.start_time}`,
-        end: `${booking.finish_date}T${booking.finish_time}`,
-        backgroundColor: colors.bg.replace('bg-', 'hsl(var(--'),
-        borderColor: colors.border.replace('border-', 'hsl(var(--'),
-        textColor: colors.text.replace('text-', 'hsl(var(--'),
+        start: `${booking.start_date}T${startTime}`,
+        end: `${endDate}T${endTime}`,
+        backgroundColor: colorMap[colors.bg] || 'hsl(var(--primary))',
+        borderColor: colorMap[colors.bg] || 'hsl(var(--primary))',
+        textColor: textColorMap[colors.text] || 'hsl(var(--primary-foreground))',
         extendedProps: {
           booking
         }
