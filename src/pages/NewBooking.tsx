@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
-import { BookingForm } from "@/components/BookingForm";
+import { BookingFormTabbed } from "@/components/BookingFormTabbed";
 
 export default function NewBooking() {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function NewBooking() {
           <CardTitle>Booking Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <BookingForm onSuccess={() => navigate("/bookings")} onCancel={() => navigate("/bookings")} />
+          <BookingFormTabbed onSuccess={() => navigate("/bookings")} />
         </CardContent>
       </Card>
     </div>

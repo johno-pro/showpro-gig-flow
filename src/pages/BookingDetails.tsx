@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { BookingForm } from "@/components/BookingForm";
+import { BookingFormTabbed } from "@/components/BookingFormTabbed";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
@@ -116,13 +116,12 @@ export default function BookingDetails() {
         </div>
         <Card>
           <CardContent className="pt-6">
-            <BookingForm
+            <BookingFormTabbed
               bookingId={id}
               onSuccess={() => {
                 setEditMode(false);
                 fetchBooking();
               }}
-              onCancel={() => setEditMode(false)}
             />
           </CardContent>
         </Card>
