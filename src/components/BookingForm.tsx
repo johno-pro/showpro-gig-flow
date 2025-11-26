@@ -3,498 +3,147 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
+import { formatGBP } from "@/lib/utils";
 
-import { DraftIndicator } from "@/components/ui/draft-indicator";
-const [formData, setFormData] = useState({
-  booking_date: "",
-  start_time: "",
-  end_time: "",
-  status: "enquiry",
-  client_id: "",
-  location_id: "",
-  venue_id: "",
-  artist_id: "",
-  fee_model: "commission",
-  artist_fee: "",
-  client_fee: "",
-  commission_rate: "",
-  vat_applicable: false,
-  deposit_amount: "",
-  deposit_paid: false,
-  balance_paid: false,
-  invoiced: false,
-  arrival_time: "",
-  performance_times: "",
-  confirmation_link: "",
-  invoice_status: "",
-  placeholder: false,
-  notes: "",
-});
-
-
-const bookingFormSchema = z.object({
-  booking_date: z.string().optional(),
-  start_time: z.string().optional(),
-  end_time: z.string().optional(),
-  status: z.enum(["enquiry", "pencil", "confirmed", "cancelled"]).optional(),
-  client_id: z.string().optional(),
-  location_id: z.string().optional(),
-  venue_id: z.string().optional(),
+const bookingSchema = z.object({
   artist_id: z.string().optional(),
-  fee_model: z.enum(["commission", "buy_sell"]).optional(),
-  artist_fee: z.string().optional(),
-  client_fee: z.string().optional(),
-  commission_rate: z.string().optional(),
-  vat_applicable: z.boolean().optional(),
-  deposit_amount: z.string().optional(),
-  deposit_paid: z.boolean().optional(),
-  balance_paid: z.boolean().optional(),
-  invoiced: z.boolean().optional(),
-  arrival_time: z.string().optional(),
-  performance_times: z.string().optional(),
-  confirmation_link: z.string().optional(),
-  invoice_status: z.string().optional(),
-  placeholder: z.boolean().optional(),
+  venue_id: z.string().optional(),
+  client_id: z.string().optional(),
+  arrival_time: z.date().optional(),
+  performance_range: z.object({ from: z.date().optional(), to: z.date().optional() }).optional(),
+  total_rate: z.number().optional(),
+  split_ratio: z.number().min(0.5).max(0.95).default(0.85),
   notes: z.string().optional(),
+  status: z.enum(["draft", "pending", "paid"]).default("draft"),
 });
 
-type BookingFormValues = z.infer<typeof bookingFormSchema>;
+type BookingFormData = z.infer<typeof bookingSchema>;
 
-interface BookingFormProps {
-  bookingId?: string;
+export function BookingForm({
+  defaultValues,
+  onSuccess,
+}: {
+  defaultValues?: Partial<BookingFormData>;
   onSuccess?: () => void;
-  onCancel?: () => void;
-}
+}) {
+  const [venues, setVenues] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState({ artist: 0, agency: 0 });
 
-export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [artists, setArtists] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [venues, setVenues] = useState<any[]>([]);
-  const [selectedClient, setSelectedClient] = useState<string>("");
-
-  const form = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingFormSchema),
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
     defaultValues: {
-      booking_date: new Date().toISOString().split('T')[0],
-      start_time: "19:00",
-      end_time: "23:59",
-      status: "enquiry",
-      fee_model: "commission",
-      vat_applicable: true,
-      deposit_paid: false,
-      balance_paid: false,
-      invoiced: false,
-      arrival_time: "",
-      performance_times: "",
-      confirmation_link: "",
-      invoice_status: "uninvoiced",
-      placeholder: false,
+      arrival_time: new Date(new Date().setHours(18, 0, 0, 0)),
+      performance_range: {
+        from: new Date(new Date().setHours(19, 0, 0, 0)),
+        to: new Date(new Date().setHours(23, 30, 0, 0)),
+      },
+      total_rate: 150,
+      ...defaultValues,
     },
   });
 
-  const { saveDraft, completeSave, draftStatus } = useFormDraft({
-    table: "bookings",
-    form,
-  });
+  useEffect(() => {
+    supabase
+      .from("venues")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setVenues(data || []));
+    supabase
+      .from("artists")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setArtists(data || []));
+    supabase
+      .from("clients")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setClients(data || []));
+  }, []);
 
   useEffect(() => {
-    fetchFormData();
-    if (bookingId) {
-      fetchBooking();
-    }
-  }, [bookingId]);
+    const { split_ratio, total_rate } = form.watch();
+    setPreview({ artist: total_rate * split_ratio, agency: total_rate * (1 - split_ratio) });
+  }, [form.watch("split_ratio"), form.watch("total_rate")]);
+
+  const handleSaveDraft = async () => {
+    setSaving(true);
+    const values = form.getValues();
+    values.status = "draft";
+    const { error } = await supabase.from("bookings").upsert(values);
+    toast[error ? "error" : "success"](error ? "Draft failed" : "Auto-saved draft!");
+    setSaving(false);
+  };
 
   useEffect(() => {
-    if (selectedClient) {
-      fetchLocations(selectedClient);
-    }
-  }, [selectedClient]);
-
-  const fetchFormData = async () => {
-    try {
-      const [artistsRes, clientsRes] = await Promise.all([
-        supabase.from("artists").select("id, name").order("name"),
-        supabase.from("clients").select("id, name").order("name"),
-      ]);
-
-      if (artistsRes.error) throw artistsRes.error;
-      if (clientsRes.error) throw clientsRes.error;
-
-      setArtists(artistsRes.data || []);
-      setClients(clientsRes.data || []);
-    } catch (error) {
-      toast.error("Failed to load form data");
-    }
-  };
-
-  const fetchLocations = async (clientId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("locations")
-        .select("id, name")
-        .eq("client_id", clientId)
-        .order("name");
-
-      if (error) throw error;
-      setLocations(data || []);
-    } catch (error) {
-      toast.error("Failed to load locations");
-    }
-  };
-
-  const fetchVenues = async (locationId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("venues")
-        .select("id, name")
-        .eq("location_id", locationId)
-        .order("name");
-
-      if (error) throw error;
-      setVenues(data || []);
-    } catch (error) {
-      toast.error("Failed to load venues");
-    }
-  };
-
-  const fetchArtistLastBooking = async (artistId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("artist_fee, vat_applicable, deposit_amount, client_fee")
-        .eq("artist_id", artistId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        // Auto-fill fields from most recent booking
-        form.setValue("artist_fee", data.artist_fee?.toString() || "");
-        form.setValue("vat_applicable", data.vat_applicable ?? true);
-        form.setValue("deposit_amount", data.deposit_amount?.toString() || "");
-        form.setValue("client_fee", data.client_fee?.toString() || "");
+    const sub = form.watch((value) => {
+      if (Object.values(value).some((v) => v !== "" && v !== undefined)) {
+        const timer = setTimeout(handleSaveDraft, 2000);
+        return () => clearTimeout(timer);
       }
-    } catch (error) {
-      // Error fetching artist's last booking - continue without auto-fill
-    }
-  };
+    });
+    return () => sub.unsubscribe();
+  }, [form.watch()]);
 
-  const fetchBooking = async () => {
-    if (!bookingId) return;
-
+  const onSubmit = async (data) => {
+    setSaving(true);
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("id", bookingId)
-        .single();
+      // Buffer validation (RPC call to trigger logic)
+      const { data: bufferCheck, error: bufferError } = await supabase.rpc("validate_booking_overlaps_with_buffers", {
+        start_date: data.arrival_time,
+        end_date: data.performance_range.to,
+        artist_id: data.artist_id,
+        venue_id: data.venue_id,
+        gig_type_id: "default-gig", // From form or default
+        team_id: "your-team-id", // From Clerk
+      });
+      if (bufferError) throw bufferError;
 
+      data.status = "pending";
+      const { data: result, error } = await supabase.from("bookings").insert(data);
       if (error) throw error;
-
-      if (data) {
-        form.reset({
-          booking_date: data.booking_date,
-          start_time: data.start_time || "",
-          end_time: data.end_time || "",
-          status: data.status,
-          client_id: data.client_id,
-          location_id: data.location_id || "",
-          venue_id: data.venue_id || "",
-          artist_id: data.artist_id || "",
-          fee_model: data.fee_model,
-          artist_fee: data.artist_fee?.toString() || "",
-          client_fee: data.client_fee?.toString() || "",
-          commission_rate: data.commission_rate?.toString() || "",
-          vat_applicable: data.vat_applicable,
-          deposit_amount: data.deposit_amount?.toString() || "",
-          deposit_paid: data.deposit_paid,
-          balance_paid: data.balance_paid,
-          invoiced: data.invoiced,
-          arrival_time: data.arrival_time || "",
-          performance_times: data.performance_times || "",
-          confirmation_link: data.confirmation_link || "",
-          invoice_status: data.invoice_status || "uninvoiced",
-          placeholder: data.placeholder || false,
-          notes: data.notes || "",
-        });
-
-        setSelectedClient(data.client_id);
-        if (data.location_id) {
-          fetchVenues(data.location_id);
-        }
-      }
-    } catch (error) {
-      toast.error("Failed to load booking");
-    }
-  };
-
-  const onSubmit = async (values: BookingFormValues) => {
-    setLoading(true);
-    try {
-      const bookingData = {
-        booking_date: values.booking_date,
-        start_time: values.start_time || null,
-        end_time: values.end_time || null,
-        status: values.status,
-        client_id: values.client_id,
-        location_id: values.location_id || null,
-        venue_id: values.venue_id || null,
-        artist_id: values.artist_id || null,
-        fee_model: values.fee_model,
-        artist_fee: values.artist_fee ? parseFloat(values.artist_fee) : null,
-        client_fee: values.client_fee ? parseFloat(values.client_fee) : null,
-        commission_rate: values.commission_rate ? parseFloat(values.commission_rate) : null,
-        deposit_amount: values.deposit_amount ? parseFloat(values.deposit_amount) : null,
-        vat_applicable: values.vat_applicable,
-        deposit_paid: values.deposit_paid,
-        balance_paid: values.balance_paid,
-        invoiced: values.invoiced,
-        arrival_time: values.arrival_time || null,
-        performance_times: values.performance_times || null,
-        confirmation_link: values.confirmation_link || null,
-        invoice_status: values.invoice_status || "uninvoiced",
-        placeholder: values.placeholder,
-        notes: values.notes || null,
-      };
-
-      // Save directly to Supabase to avoid status being overwritten by useFormDraft
-      if (bookingId) {
-        const { error } = await supabase
-          .from("bookings")
-          .update(bookingData)
-          .eq("id", bookingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("bookings")
-          .insert([bookingData]);
-        if (error) throw error;
-      }
-
-      toast.success(bookingId ? "Booking updated successfully" : "Booking created successfully");
+      toast.success("Booking created!");
       onSuccess?.();
-    } catch (error: any) {
-      console.error("Booking save error:", error);
-      toast.error(error.message || "Failed to save booking");
+    } catch (err) {
+      toast.error(err.message || "Booking failed—check buffers?");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="times">Times</TabsTrigger>
+          <TabsTrigger value="money">Money</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details">
           <FormField
-            control={form.control}
-            name="booking_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Booking Date *</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="enquiry">Enquiry</SelectItem>
-                    <SelectItem value="pencil">Pencil</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="start_time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Start Time</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="end_time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Time</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="client_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Client *</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    setSelectedClient(value);
-                    form.setValue("location_id", "");
-                    form.setValue("venue_id", "");
-                    setVenues([]);
-                  }}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="location_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    fetchVenues(value);
-                    form.setValue("venue_id", "");
-                  }}
-                  value={field.value}
-                  disabled={!selectedClient}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="venue_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Venue</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                  disabled={!form.watch("location_id")}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select venue" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {venues.map((venue) => (
-                      <SelectItem key={venue.id} value={venue.id}>
-                        {venue.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="artist_id"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="mb-4">
                 <FormLabel>Artist</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    if (value && !bookingId) {
-                      fetchArtistLastBooking(value);
-                    }
-                  }}
-                  value={field.value}
-                >
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select artist" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {artists.map((artist) => (
-                      <SelectItem key={artist.id} value={artist.id}>
-                        {artist.name}
+                    {artists.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -503,268 +152,137 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
               </FormItem>
             )}
           />
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Financial Details</h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="fee_model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fee Model</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select fee model" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="commission">Commission</SelectItem>
-                      <SelectItem value="buy_sell">Buy/Sell</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="commission_rate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Commission Rate (%)</FormLabel>
+          <FormField
+            name="venue_id"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Venue</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="15.00" {...field} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select venue" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="artist_fee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Artist Fee (£)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="client_fee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Fee (£)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="deposit_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Deposit Amount (£)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="vat_applicable"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel>VAT Applicable</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="deposit_paid"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel>Deposit Paid</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="balance_paid"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel>Balance Paid</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="invoiced"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel>Invoiced</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="placeholder"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel>Placeholder (Red Hold)</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Additional Details</h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="arrival_time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Arrival Time</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="performance_times"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Performance Times</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., 8:00pm - 11:00pm" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="invoice_status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Invoice Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="uninvoiced">Uninvoiced</SelectItem>
-                      <SelectItem value="sent">Sent</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="confirmation_link"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirmation Link</FormLabel>
-                  <FormControl>
-                    <Input placeholder="URL to confirmation email/form" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Add any additional notes..." className="min-h-[100px]" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex items-center justify-between">
-          <div className="flex gap-3">
-
-              
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : bookingId ? "Update Booking" : "Create Booking"}
-            </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-                Cancel
-              </Button>
+                  <SelectContent>
+                    {venues.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
             )}
+          />
+          <FormField
+            name="client_id"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Client</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </TabsContent>
+        <TabsContent value="times">
+          <FormField
+            name="arrival_time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Arrival (Default 6pm)</FormLabel>
+                <FormControl>
+                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="performance_range"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Performance (Default 7pm-11:30pm)</FormLabel>
+                <FormControl>
+                  <Calendar mode="range" selected={field.value} onSelect={(range) => field.onChange(range)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </TabsContent>
+        <TabsContent value="money">
+          <FormField
+            name="total_rate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rate (£)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" placeholder="e.g. 150" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="split_ratio"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Split Ratio</FormLabel>
+                <Select onValueChange={(v) => field.onChange(parseFloat(v))} value={field.value.toString()}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="85/15" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.85">85/15</SelectItem>
+                    <SelectItem value="0.80">80/20</SelectItem>
+                    <SelectItem value="0.90">90/10</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <p>Artist: {formatGBP(preview.artist)}</p>
+            <p>Agency: {formatGBP(preview.agency)}</p>
           </div>
-        </div>
-      </form>
+        </TabsContent>
+      </Tabs>
+      <div className="flex gap-3 mt-4">
+        <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={saving}>
+          {saving ? "Saving..." : "Save Draft"}
+        </Button>
+        <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={saving}>
+          {saving ? "Creating..." : "Create Booking"}
+        </Button>
+      </div>
+      <FormField
+        name="notes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Notes</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="Add notes..." />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </Form>
   );
 }
