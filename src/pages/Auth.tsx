@@ -14,6 +14,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showUpdatePassword, setShowUpdatePassword] = useState(false);
+  const [showMagicLink, setShowMagicLink] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -155,6 +156,36 @@ export default function Auth() {
     setIsLoading(false);
   };
 
+  const handleMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+
+    if (!email || !email.includes('@')) {
+      toast.error("Please enter a valid email address");
+      setIsLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+      },
+    });
+
+    if (error) {
+      toast.error(`Failed to send magic link: ${error.message}`);
+    } else {
+      toast.success("Magic link sent! Check your inbox to sign in.");
+      setShowMagicLink(false);
+    }
+
+    setIsLoading(false);
+  };
+
   const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -209,7 +240,9 @@ export default function Auth() {
               {showUpdatePassword
                 ? "Enter your new password"
                 : showResetPassword 
-                ? "Enter your email to reset your password" 
+                ? "Enter your email to reset your password"
+                : showMagicLink
+                ? "Enter your email to receive a magic link"
                 : "Sign in to your account or create a new one"}
             </CardDescription>
           </CardHeader>
@@ -275,6 +308,33 @@ export default function Auth() {
                   Back to Sign In
                 </Button>
               </form>
+            ) : showMagicLink ? (
+              <form onSubmit={handleMagicLink} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="magic-email">Email</Label>
+                  <Input
+                    id="magic-email"
+                    name="email"
+                    type="email"
+                    placeholder="julie@ents.pro"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    We'll send a sign-in link to this email. No password needed.
+                  </p>
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending magic link..." : "Send Magic Link"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShowMagicLink(false)}
+                >
+                  Back to Sign In
+                </Button>
+              </form>
             ) : (
               <Tabs defaultValue="signin" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -306,7 +366,7 @@ export default function Auth() {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
-                    <div className="text-center">
+                    <div className="text-center space-y-1">
                       <Button
                         type="button"
                         variant="link"
@@ -314,6 +374,22 @@ export default function Auth() {
                         onClick={() => setShowResetPassword(true)}
                       >
                         Forgot Password?
+                      </Button>
+                      <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-card px-2 text-muted-foreground">or</span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setShowMagicLink(true)}
+                      >
+                        Sign in with Magic Link
                       </Button>
                     </div>
                   </form>
