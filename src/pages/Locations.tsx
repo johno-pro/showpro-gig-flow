@@ -41,15 +41,20 @@ export default function Locations() {
         .from("locations")
         .select(`
           *,
-          clients:client_id(name)
+          clients:client_id(name, is_venue_operator)
         `)
         .order("name");
 
       if (error) throw error;
       
+      // Filter to only show locations linked to venue operators
+      const venueOperatorLocations = (data || []).filter(
+        (location) => location.clients?.is_venue_operator !== false
+      );
+
       // Count venues for each location
       const locationsWithVenueCount = await Promise.all(
-        (data || []).map(async (location) => {
+        venueOperatorLocations.map(async (location) => {
           const { count } = await supabase
             .from("venues")
             .select("*", { count: "exact", head: true })

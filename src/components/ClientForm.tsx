@@ -183,30 +183,6 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Client Type</h3>
-          <FormField
-            control={form.control}
-            name="is_venue_operator"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Venue Operator</FormLabel>
-                  <FormDescription>
-                    Does this client operate venues/locations? If not, they will be listed as "Client Only" and excluded from venue-related lists.
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Company Information</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField
@@ -422,6 +398,24 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="is_venue_operator"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center gap-3">
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel className="!mt-0 text-sm font-normal">
+                This client operates venues/locations
+              </FormLabel>
             </FormItem>
           )}
         />
