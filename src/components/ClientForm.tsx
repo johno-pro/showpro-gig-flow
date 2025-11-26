@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Form,
   FormControl,
@@ -36,6 +37,7 @@ const clientFormSchema = z.object({
   billing_address: z.string().trim().optional(),
   invoice_preferences: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  is_venue_operator: z.boolean().default(true),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -73,6 +75,7 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
       billing_address: "",
       invoice_preferences: "",
       notes: "",
+      is_venue_operator: true,
     },
   });
 
@@ -115,6 +118,7 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
           billing_address: data.billing_address || "",
           invoice_preferences: data.invoice_preferences || "",
           notes: data.notes || "",
+          is_venue_operator: data.is_venue_operator ?? true,
         });
       }
     } catch (error) {
@@ -141,6 +145,7 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
         billing_address: values.billing_address?.trim() || null,
         invoice_preferences: values.invoice_preferences?.trim() || null,
         notes: values.notes?.trim() || null,
+        is_venue_operator: values.is_venue_operator,
         status: "active",
       };
 
@@ -177,6 +182,30 @@ export function ClientForm({ clientId, onSuccess, onCancel }: ClientFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Client Type</h3>
+          <FormField
+            control={form.control}
+            name="is_venue_operator"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Venue Operator</FormLabel>
+                  <FormDescription>
+                    Does this client operate venues/locations? If not, they will be listed as "Client Only" and excluded from venue-related lists.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Company Information</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -430,6 +430,7 @@ export type Database = {
           email_targets: Json | null
           id: string
           invoice_preferences: string | null
+          is_venue_operator: boolean | null
           name: string
           notes: string | null
           status: string | null
@@ -451,6 +452,7 @@ export type Database = {
           email_targets?: Json | null
           id?: string
           invoice_preferences?: string | null
+          is_venue_operator?: boolean | null
           name: string
           notes?: string | null
           status?: string | null
@@ -472,6 +474,7 @@ export type Database = {
           email_targets?: Json | null
           id?: string
           invoice_preferences?: string | null
+          is_venue_operator?: boolean | null
           name?: string
           notes?: string | null
           status?: string | null
