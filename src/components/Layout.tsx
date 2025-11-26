@@ -54,7 +54,9 @@ export function Layout({ children }: { children: ReactNode }) {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive = item.href === "/" 
+                ? location.pathname === "/" 
+                : location.pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.name}
