@@ -18,6 +18,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 
 interface Booking {
   id: string;
+  booking_date: string;
   start_date: string;
   start_time: string;
   finish_date: string;
@@ -244,13 +245,14 @@ export default function Diary() {
       
       const startTime = booking.start_time || '09:00';
       const endTime = booking.finish_time || '17:00';
-      const endDate = booking.finish_date || booking.start_date;
+      // Use booking_date as the primary date for the calendar
+      const eventDate = booking.booking_date || booking.start_date;
       
       return {
         id: booking.id,
         title: `${booking.artists?.name || "TBA"} @ ${booking.locations?.name || "TBA"}`,
-        start: `${booking.start_date}T${startTime}`,
-        end: `${endDate}T${endTime}`,
+        start: `${eventDate}T${startTime}`,
+        end: `${eventDate}T${endTime}`,
         backgroundColor: colorMap[colors.bg] || 'hsl(var(--primary))',
         borderColor: colorMap[colors.bg] || 'hsl(var(--primary))',
         textColor: textColorMap[colors.text] || 'hsl(var(--primary-foreground))',
@@ -305,7 +307,7 @@ export default function Diary() {
               </td>
               {days.map((day) => {
                 const dayBookings = bookings.filter(
-                  (b) => !b.artists && isSameDay(parseISO(b.start_date), day)
+                  (b) => !b.artists && isSameDay(parseISO(b.booking_date || b.start_date), day)
                 );
                 const hasBooking = dayBookings.length > 0;
 
@@ -358,7 +360,7 @@ export default function Diary() {
                 </td>
                 {days.map((day) => {
                   const dayBookings = bookings.filter(
-                    (b) => b.artists?.id === artist.id && isSameDay(parseISO(b.start_date), day)
+                    (b) => b.artists?.id === artist.id && isSameDay(parseISO(b.booking_date || b.start_date), day)
                   );
                   const hasBooking = dayBookings.length > 0;
 
@@ -419,7 +421,7 @@ export default function Diary() {
                 </td>
                 {days.map((day) => {
                   const dayBookings = bookings.filter(
-                    (b) => b.locations?.id === location.id && isSameDay(parseISO(b.start_date), day)
+                    (b) => b.locations?.id === location.id && isSameDay(parseISO(b.booking_date || b.start_date), day)
                   );
                   const hasBooking = dayBookings.length > 0;
 
