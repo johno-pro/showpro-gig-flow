@@ -42,21 +42,28 @@ export default function Venues() {
 
       if (venuesError) throw venuesError;
 
-      // Fetch locations separately
+      // Fetch locations with client info to filter by venue operators
       const { data: locationsData, error: locationsError } = await supabase
         .from("locations")
-        .select("id, name");
+        .select("id, name, client_id, clients:client_id(is_venue_operator)");
 
       if (locationsError) throw locationsError;
 
-      // Create a map for quick lookup
+      // Create a map for quick lookup (only venue operator locations)
+      const venueOperatorLocationIds = new Set(
+        (locationsData || [])
+          .filter((loc) => loc.clients?.is_venue_operator !== false)
+          .map((loc) => loc.id)
+      );
       const locationsMap = new Map(locationsData?.map(loc => [loc.id, loc.name]) || []);
 
-      // Merge the data
-      const venuesWithLocations = venuesData?.map(venue => ({
-        ...venue,
-        locationName: venue.location_id ? locationsMap.get(venue.location_id) : null
-      })) || [];
+      // Filter venues to only those at venue operator locations
+      const venuesWithLocations = (venuesData || [])
+        .filter((venue) => !venue.location_id || venueOperatorLocationIds.has(venue.location_id))
+        .map((venue) => ({
+          ...venue,
+          locationName: venue.location_id ? locationsMap.get(venue.location_id) : null
+        }));
 
       setVenues(venuesWithLocations);
       setFilteredVenues(venuesWithLocations);
