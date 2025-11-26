@@ -23,8 +23,34 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { useFormDraft } from "@/hooks/useFormDraft";
+
 import { DraftIndicator } from "@/components/ui/draft-indicator";
+const [formData, setFormData] = useState({
+  booking_date: "",
+  start_time: "",
+  end_time: "",
+  status: "enquiry",
+  client_id: "",
+  location_id: "",
+  venue_id: "",
+  artist_id: "",
+  fee_model: "commission",
+  artist_fee: "",
+  client_fee: "",
+  commission_rate: "",
+  vat_applicable: false,
+  deposit_amount: "",
+  deposit_paid: false,
+  balance_paid: false,
+  invoiced: false,
+  arrival_time: "",
+  performance_times: "",
+  confirmation_link: "",
+  invoice_status: "",
+  placeholder: false,
+  notes: "",
+});
+
 
 const bookingFormSchema = z.object({
   booking_date: z.string().optional(),
@@ -724,10 +750,9 @@ export function BookingForm({ bookingId, onSuccess, onCancel }: BookingFormProps
         />
 
         <div className="flex items-center justify-between">
-          <DraftIndicator status={draftStatus} />
           <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
-              Save Draft
+
+              
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : bookingId ? "Update Booking" : "Create Booking"}
