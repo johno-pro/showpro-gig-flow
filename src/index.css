@@ -177,6 +177,12 @@ All colors MUST be HSL.
   border-color: hsl(var(--border));
 }
 
+/* Cancelled booking style */
+.fc .fc-event.line-through .fc-event-title,
+.fc .fc-event.line-through .fc-event-time {
+  text-decoration: line-through;
+}
+
 @layer base {
   * {
     @apply border-border;

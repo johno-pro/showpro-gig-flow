@@ -224,28 +224,39 @@ export default function Diary() {
 
   const getCalendarEvents = () => {
     return bookings.map((booking) => {
-      const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
+      const status = booking.artist_status || booking.status;
+      const isPlaceholder = booking.placeholder;
       
-      // Map Tailwind classes to CSS custom property colors
-      const colorMap: Record<string, string> = {
-        'bg-success': 'hsl(var(--success))',
-        'bg-warning': 'hsl(var(--warning))',
-        'bg-destructive': 'hsl(var(--destructive))',
-        'bg-muted': 'hsl(var(--muted))',
-        'bg-secondary': 'hsl(var(--secondary))',
-      };
+      // Define colors based on status to match the legend
+      let backgroundColor = '#6366f1'; // default primary
+      let textColor = '#ffffff'; // white text for most statuses
       
-      const textColorMap: Record<string, string> = {
-        'text-success-foreground': 'hsl(var(--success-foreground))',
-        'text-warning-foreground': 'hsl(var(--warning-foreground))',
-        'text-destructive-foreground': 'hsl(var(--destructive-foreground))',
-        'text-muted-foreground': 'hsl(var(--muted-foreground))',
-        'text-secondary-foreground': 'hsl(var(--secondary-foreground))',
-      };
+      if (isPlaceholder) {
+        backgroundColor = 'hsl(0, 84%, 60%)'; // destructive red
+        textColor = '#ffffff';
+      } else {
+        switch (status) {
+          case 'confirmed':
+            backgroundColor = 'hsl(142, 71%, 45%)'; // success green
+            textColor = '#ffffff';
+            break;
+          case 'pencil':
+            backgroundColor = 'hsl(38, 92%, 50%)'; // warning orange
+            textColor = '#ffffff';
+            break;
+          case 'cancelled':
+            backgroundColor = 'hsl(250, 20%, 96%)'; // muted
+            textColor = 'hsl(250, 10%, 45%)'; // muted-foreground
+            break;
+          default: // enquiry
+            backgroundColor = 'hsl(250, 60%, 96%)'; // secondary
+            textColor = 'hsl(250, 70%, 55%)'; // secondary-foreground
+            break;
+        }
+      }
       
       const startTime = booking.start_time || '09:00';
       const endTime = booking.finish_time || '17:00';
-      // Use booking_date as the primary date for the calendar
       const eventDate = booking.booking_date || booking.start_date;
       
       return {
@@ -253,9 +264,10 @@ export default function Diary() {
         title: `${booking.artists?.name || "TBA"} @ ${booking.locations?.name || "TBA"}`,
         start: `${eventDate}T${startTime}`,
         end: `${eventDate}T${endTime}`,
-        backgroundColor: colorMap[colors.bg] || 'hsl(var(--primary))',
-        borderColor: colorMap[colors.bg] || 'hsl(var(--primary))',
-        textColor: textColorMap[colors.text] || 'hsl(var(--primary-foreground))',
+        backgroundColor,
+        borderColor: backgroundColor,
+        textColor,
+        classNames: status === 'cancelled' ? ['line-through'] : [],
         extendedProps: {
           booking
         }
