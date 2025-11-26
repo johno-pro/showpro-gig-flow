@@ -261,6 +261,58 @@ export default function Diary() {
             </tr>
           </thead>
           <tbody>
+            {/* Render row for unassigned bookings (no artist) */}
+            <tr className="hover:bg-muted/50 bg-warning/10">
+              <td className="border p-2 font-medium sticky left-0 bg-warning/20 z-10">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-warning"></div>
+                  <span className="font-bold text-warning-foreground">Unassigned</span>
+                </div>
+              </td>
+              {days.map((day) => {
+                const dayBookings = bookings.filter(
+                  (b) => !b.artists && isSameDay(parseISO(b.start_date), day)
+                );
+                const hasBooking = dayBookings.length > 0;
+
+                return (
+                  <td key={day.toISOString()} className="border p-1 bg-warning/5">
+                    {hasBooking ? (
+                      <div className="space-y-1">
+                        {dayBookings.map((booking) => {
+                          const colors = getStatusColor(booking.artist_status || booking.status, booking.placeholder);
+                          return (
+                            <HoverCard key={booking.id} openDelay={200}>
+                              <HoverCardTrigger asChild>
+                                <div
+                                  onClick={() => setSelectedBooking(booking)}
+                                  className={cn(
+                                    "p-1 rounded cursor-pointer hover:opacity-80 transition-opacity text-[10px]",
+                                    "bg-warning text-warning-foreground",
+                                    booking.artist_status === "cancelled" && "line-through"
+                                  )}
+                                >
+                                  <div className="font-bold truncate">{booking.locations?.name || "No Location"}</div>
+                                  <div>{booking.start_time || "TBA"}</div>
+                                </div>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-auto" side="right">
+                                {renderBookingHoverContent(booking)}
+                              </HoverCardContent>
+                            </HoverCard>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="h-full min-h-[40px] flex items-center justify-center">
+                        <span className="text-muted-foreground text-xs">—</span>
+                      </div>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+
             {/* Render rows for each artist */}
             {artists.map((artist) => (
               <tr key={`artist-${artist.id}`} className="hover:bg-muted/50">
