@@ -120,6 +120,63 @@ All colors MUST be HSL.
   }
 }
 
+/* FullCalendar Styles */
+.fc {
+  --fc-border-color: hsl(var(--border));
+  --fc-button-text-color: hsl(var(--primary-foreground));
+  --fc-button-bg-color: hsl(var(--primary));
+  --fc-button-border-color: hsl(var(--primary));
+  --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+  --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+  --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
+  --fc-button-active-border-color: hsl(var(--primary) / 0.8);
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-today-bg-color: hsl(var(--primary) / 0.1);
+  --fc-page-bg-color: hsl(var(--background));
+  --fc-neutral-bg-color: hsl(var(--muted));
+  --fc-list-event-hover-bg-color: hsl(var(--muted));
+}
+
+.fc .fc-daygrid-day-number {
+  color: hsl(var(--foreground));
+  padding: 8px;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  padding: 8px;
+}
+
+.fc .fc-daygrid-event {
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+.fc .fc-timegrid-slot-label {
+  color: hsl(var(--muted-foreground));
+}
+
+.fc .fc-timegrid-event {
+  border-radius: 4px;
+}
+
+.fc-theme-standard td, .fc-theme-standard th {
+  border-color: hsl(var(--border));
+}
+
+.fc .fc-scrollgrid {
+  border-color: hsl(var(--border));
+}
+
 @layer base {
   * {
     @apply border-border;

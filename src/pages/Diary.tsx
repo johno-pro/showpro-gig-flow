@@ -535,8 +535,8 @@ export default function Diary() {
         </TabsList>
 
         <TabsContent value="month" className="flex-1 mt-4">
-          <Card className="h-full">
-            <CardContent className="pt-6 h-full">
+          <Card className="min-h-[600px]">
+            <CardContent className="pt-6">
               <FullCalendar
                 ref={monthCalendarRef}
                 plugins={[dayGridPlugin, interactionPlugin]}
@@ -545,7 +545,8 @@ export default function Diary() {
                 events={getCalendarEvents()}
                 eventClick={handleEventClick}
                 headerToolbar={false}
-                height="100%"
+                height="auto"
+                contentHeight="auto"
                 eventDisplay="block"
                 eventTimeFormat={{
                   hour: '2-digit',
@@ -558,8 +559,8 @@ export default function Diary() {
         </TabsContent>
 
         <TabsContent value="week" className="flex-1 mt-4">
-          <Card className="h-full">
-            <CardContent className="pt-6 h-full">
+          <Card className="min-h-[600px]">
+            <CardContent className="pt-6">
               <FullCalendar
                 ref={weekCalendarRef}
                 plugins={[timeGridPlugin, interactionPlugin]}
@@ -568,7 +569,7 @@ export default function Diary() {
                 events={getCalendarEvents()}
                 eventClick={handleEventClick}
                 headerToolbar={false}
-                height="100%"
+                height={600}
                 slotMinTime="08:00:00"
                 slotMaxTime="24:00:00"
                 allDaySlot={false}
