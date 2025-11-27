@@ -58,12 +58,6 @@ export default function Auth() {
       return;
     }
 
-    if (email !== "info@ents.pro") {
-      toast.error("This account is not authorized to access this application");
-      setIsLoading(false);
-      return;
-    }
-
     const { error } = await signIn(email, password);
 
     if (error) {
@@ -109,12 +103,6 @@ export default function Auth() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
-
-    if (email !== "info@ents.pro") {
-      toast.error("This account is not authorized to access this application");
-      setIsLoading(false);
-      return;
-    }
 
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -177,12 +165,6 @@ export default function Auth() {
 
     if (!email || !email.includes('@')) {
       toast.error("Please enter a valid email address");
-      setIsLoading(false);
-      return;
-    }
-
-    if (email !== "info@ents.pro") {
-      toast.error("This account is not authorized to access this application");
       setIsLoading(false);
       return;
     }
