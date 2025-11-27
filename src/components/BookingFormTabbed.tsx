@@ -29,6 +29,8 @@ const bookingSchema = z.object({
   end_time: z.string().optional(),
   total_rate: z.number().min(0).optional(),
   split_ratio: z.number().min(0.5).max(0.95).default(0.85),
+  vat_rate_client: z.number().min(0).max(100).default(20),
+  vat_rate_artist: z.number().min(0).max(100).default(20),
   notes: z.string().optional(),
   status: z.enum(['draft', 'enquiry', 'pencil', 'confirmed']).default('draft'),
 });
@@ -92,6 +94,8 @@ export function BookingFormTabbed({
       end_time: "23:30",
       total_rate: 150,
       split_ratio: 0.85,
+      vat_rate_client: 20,
+      vat_rate_artist: 20,
       status: 'draft',
       ...defaultValues,
     },
@@ -141,6 +145,8 @@ export function BookingFormTabbed({
         end_time: data.end_time || '23:30',
         total_rate: data.sell_fee || 150,
         split_ratio: data.buy_fee && data.sell_fee ? data.buy_fee / data.sell_fee : 0.85,
+        vat_rate_client: data.vat_rate || 20,
+        vat_rate_artist: data.vat_rate || 20,
         notes: data.notes || '',
         status: data.status as any || 'draft',
       });
@@ -160,14 +166,23 @@ export function BookingFormTabbed({
     setLocations(data || []);
   };
 
-  // Calculate split preview
+  // Calculate split preview with VAT
   useEffect(() => {
     const subscription = form.watch((value) => {
-      const { split_ratio = 0.85, total_rate = 0 } = value;
+      const { split_ratio = 0.85, total_rate = 0, vat_rate_client = 20, vat_rate_artist = 20 } = value;
+      const artistNet = total_rate * split_ratio;
+      const agencyNet = total_rate * (1 - split_ratio);
+      const artistVat = artistNet * (vat_rate_artist / 100);
+      const agencyVat = agencyNet * (vat_rate_client / 100);
+      
       setPreview({ 
-        artist: total_rate * split_ratio, 
-        agency: total_rate * (1 - split_ratio) 
-      });
+        artist: artistNet,
+        agency: agencyNet,
+        artistVat,
+        agencyVat,
+        artistTotal: artistNet + artistVat,
+        agencyTotal: agencyNet + agencyVat
+      } as any);
     });
     return () => subscription.unsubscribe();
   }, [form.watch]);
@@ -198,6 +213,9 @@ export function BookingFormTabbed({
     if (!values.client_id || saving) return;
 
     setSaving(true);
+    const artistNet = values.total_rate ? values.total_rate * (values.split_ratio || 0.85) : 0;
+    const clientNet = values.total_rate || 0;
+    
     const draftData: any = {
       artist_id: values.artist_id || null,
       venue_id: values.venue_id || null,
@@ -208,8 +226,11 @@ export function BookingFormTabbed({
       finish_date: values.end_date?.toISOString().split('T')[0],
       start_time: values.start_time || null,
       end_time: values.end_time || null,
-      buy_fee: values.total_rate ? values.total_rate * (values.split_ratio || 0.85) : null,
-      sell_fee: values.total_rate || null,
+      buy_fee: artistNet,
+      sell_fee: clientNet,
+      vat_rate: values.vat_rate_client || 20,
+      vat_in: artistNet * ((values.vat_rate_artist || 20) / 100),
+      vat_out: clientNet * ((values.vat_rate_client || 20) / 100),
       notes: values.notes || null,
       status: values.status === 'draft' ? 'enquiry' : values.status,
       booking_date: values.start_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
@@ -235,6 +256,9 @@ export function BookingFormTabbed({
   const onSubmit = async (data: BookingFormData) => {
     setSaving(true);
     try {
+      const artistNet = data.total_rate ? data.total_rate * (data.split_ratio || 0.85) : 0;
+      const clientNet = data.total_rate || 0;
+      
       const bookingData = {
         artist_id: data.artist_id || null,
         venue_id: data.venue_id || null,
@@ -245,8 +269,11 @@ export function BookingFormTabbed({
         finish_date: data.end_date?.toISOString().split('T')[0],
         start_time: data.start_time || null,
         end_time: data.end_time || null,
-        buy_fee: data.total_rate ? data.total_rate * (data.split_ratio || 0.85) : null,
-        sell_fee: data.total_rate || null,
+        buy_fee: artistNet,
+        sell_fee: clientNet,
+        vat_rate: data.vat_rate_client || 20,
+        vat_in: artistNet * ((data.vat_rate_artist || 20) / 100),
+        vat_out: clientNet * ((data.vat_rate_client || 20) / 100),
         notes: data.notes || null,
         status: data.status === 'draft' ? 'enquiry' : data.status,
         booking_date: data.start_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
@@ -499,30 +526,22 @@ export function BookingFormTabbed({
 
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
-                <div className="text-sm font-medium text-muted-foreground mr-2 self-center">Quick Presets:</div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => applyPreset(0.80)}
-                >
-                  80/20
-                </Button>
+                <div className="text-sm font-medium text-muted-foreground mr-2 self-center">Quick Commission:</div>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
                   onClick={() => applyPreset(0.85)}
                 >
-                  85/15
+                  15% Commission
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  onClick={() => applyPreset(0.90)}
+                  onClick={() => applyPreset(0.925)}
                 >
-                  90/10
+                  7.5% Commission
                 </Button>
                 {defaultSplit !== 0.85 && (
                   <Button
@@ -532,7 +551,7 @@ export function BookingFormTabbed({
                     onClick={() => applyPreset(defaultSplit)}
                     className="border-2 border-primary"
                   >
-                    Default ({Math.round(defaultSplit * 100)}%)
+                    Default ({Math.round((1 - defaultSplit) * 100)}% Comm.)
                   </Button>
                 )}
               </div>
@@ -699,21 +718,84 @@ export function BookingFormTabbed({
               )}
             />
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="vat_rate_artist"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Artist VAT Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.1" 
+                        placeholder="20.0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 20)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="vat_rate_client"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client VAT Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.1" 
+                        placeholder="20.0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 20)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Fee Split Summary</CardTitle>
+                <CardTitle className="text-sm">Fee Split Summary (with VAT)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Artist gets:</span>
-                  <span className="font-semibold">{formatGBP(preview.artist)}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Artist Net:</span>
+                  <span>{formatGBP((preview as any).artist)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Agency gets:</span>
-                  <span className="font-semibold">{formatGBP(preview.agency)}</span>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Artist VAT ({form.watch('vat_rate_artist')}%):</span>
+                  <span>{formatGBP((preview as any).artistVat || 0)}</span>
                 </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Artist Total:</span>
+                  <span>{formatGBP((preview as any).artistTotal || 0)}</span>
+                </div>
+                
+                <div className="border-t pt-2 mt-2" />
+                
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Agency Net:</span>
+                  <span>{formatGBP((preview as any).agency)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Agency VAT ({form.watch('vat_rate_client')}%):</span>
+                  <span>{formatGBP((preview as any).agencyVat || 0)}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Agency Total:</span>
+                  <span>{formatGBP((preview as any).agencyTotal || 0)}</span>
+                </div>
+                
                 <div className="pt-2 border-t text-xs text-muted-foreground">
                   {Math.round((form.watch('split_ratio') || 0.85) * 100)}% / {Math.round((1 - (form.watch('split_ratio') || 0.85)) * 100)}% split
+                  • Commission: {Math.round((1 - (form.watch('split_ratio') || 0.85)) * 100)}%
                 </div>
               </CardContent>
             </Card>
