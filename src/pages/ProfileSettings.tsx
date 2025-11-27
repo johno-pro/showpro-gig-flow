@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 
 interface ProfileData {
   full_name: string;
@@ -105,6 +105,29 @@ export default function ProfileSettings() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleClearTabStates = () => {
+    try {
+      // Get all localStorage keys
+      const keys = Object.keys(localStorage);
+      
+      // Filter and remove only tab-related keys
+      const tabKeys = keys.filter(key => key.includes("-tab"));
+      tabKeys.forEach(key => localStorage.removeItem(key));
+
+      toast({
+        title: "Success",
+        description: `Cleared ${tabKeys.length} saved tab preference(s)`,
+      });
+    } catch (error) {
+      console.error("Error clearing tab states:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clear tab preferences",
+        variant: "destructive",
+      });
     }
   };
 
@@ -278,6 +301,31 @@ export default function ProfileSettings() {
                 })
               }
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Application Preferences</CardTitle>
+          <CardDescription>Reset your saved interface preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Tab Preferences</Label>
+              <p className="text-sm text-muted-foreground">
+                Clear all saved tab states across the application
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearTabStates}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Clear Tab States
+            </Button>
           </div>
         </CardContent>
       </Card>
