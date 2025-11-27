@@ -126,6 +126,9 @@ export function BookingFormTabbed({
       .maybeSingle();
       
     if (data && !error) {
+      // Ensure currentBookingId is set when editing
+      setCurrentBookingId(bookingId);
+      
       form.reset({
         artist_id: data.artist_id || '',
         venue_id: data.venue_id || '',
@@ -249,11 +252,17 @@ export function BookingFormTabbed({
         booking_date: data.start_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
       };
 
-      const { error } = currentBookingId
+      const { data: insertedData, error } = currentBookingId
         ? await supabase.from('bookings').update(bookingData).eq('id', currentBookingId)
-        : await supabase.from('bookings').insert(bookingData);
+        : await supabase.from('bookings').insert(bookingData).select('id').single();
 
       if (error) throw error;
+      
+      // Set the ID if we just created a new booking
+      if (!currentBookingId && insertedData) {
+        setCurrentBookingId((insertedData as any).id);
+      }
+      
       toast.success(currentBookingId ? 'Booking updated!' : 'Booking created!');
       onSuccess?.();
     } catch (err: any) {
