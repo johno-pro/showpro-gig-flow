@@ -40,6 +40,7 @@ import TermsLibrary from "./pages/TermsLibrary";
 import InvoiceBatches from "./pages/InvoiceBatches";
 import NewInvoiceBatch from "./pages/NewInvoiceBatch";
 import InvoiceBatchDetails from "./pages/InvoiceBatchDetails";
+import InvoiceDetails from "./pages/InvoiceDetails";
 import BookingSeries from "./pages/BookingSeries";
 import NewBookingSeries from "./pages/NewBookingSeries";
 import BookingSeriesDetails from "./pages/BookingSeriesDetails";
@@ -411,6 +412,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <InvoiceBatchDetails />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoices/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InvoiceDetails />
                   </Layout>
                 </ProtectedRoute>
               }
