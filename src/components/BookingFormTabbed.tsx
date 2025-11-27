@@ -54,6 +54,15 @@ export function BookingFormTabbed({
   const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [calculationMode, setCalculationMode] = useState<'split' | 'commission'>('split');
+  const [defaultSplit, setDefaultSplit] = useState<number>(0.85);
+
+  // Load default split from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('default_split_ratio');
+    if (saved) {
+      setDefaultSplit(parseFloat(saved));
+    }
+  }, []);
 
   // Update currentBookingId if bookingId prop changes
   useEffect(() => {
@@ -61,6 +70,17 @@ export function BookingFormTabbed({
       setCurrentBookingId(bookingId);
     }
   }, [bookingId]);
+
+  const saveDefaultSplit = () => {
+    const currentSplit = form.getValues('split_ratio') || 0.85;
+    localStorage.setItem('default_split_ratio', currentSplit.toString());
+    setDefaultSplit(currentSplit);
+    toast.success(`Default split saved: ${Math.round(currentSplit * 100)}%`);
+  };
+
+  const applyPreset = (ratio: number) => {
+    form.setValue('split_ratio', ratio);
+  };
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -468,23 +488,73 @@ export function BookingFormTabbed({
               )}
             />
 
-            <div className="flex gap-2 mb-4">
-              <Button
-                type="button"
-                variant={calculationMode === 'split' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCalculationMode('split')}
-              >
-                Split Ratio
-              </Button>
-              <Button
-                type="button"
-                variant={calculationMode === 'commission' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCalculationMode('commission')}
-              >
-                Commission %
-              </Button>
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <div className="text-sm font-medium text-muted-foreground mr-2 self-center">Quick Presets:</div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => applyPreset(0.80)}
+                >
+                  80/20
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => applyPreset(0.85)}
+                >
+                  85/15
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => applyPreset(0.90)}
+                >
+                  90/10
+                </Button>
+                {defaultSplit !== 0.85 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => applyPreset(defaultSplit)}
+                    className="border-2 border-primary"
+                  >
+                    Default ({Math.round(defaultSplit * 100)}%)
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={calculationMode === 'split' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCalculationMode('split')}
+                >
+                  Split Ratio
+                </Button>
+                <Button
+                  type="button"
+                  variant={calculationMode === 'commission' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCalculationMode('commission')}
+                >
+                  Commission %
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={saveDefaultSplit}
+                  className="ml-auto"
+                >
+                  Save as Default
+                </Button>
+              </div>
             </div>
 
             {calculationMode === 'commission' ? (
