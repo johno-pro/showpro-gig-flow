@@ -454,7 +454,7 @@ export function BookingFormTabbed({
                     <Slider
                       min={50}
                       max={95}
-                      step={5}
+                      step={1}
                       value={[Math.round((field.value || 0.85) * 100)]}
                       onValueChange={(values) => field.onChange(values[0] / 100)}
                     />
