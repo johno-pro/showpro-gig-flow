@@ -24,6 +24,7 @@ export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [booking, setBooking] = useState<any>(null);
+  const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -50,6 +51,17 @@ export default function BookingDetails() {
 
       if (error) throw error;
       setBooking(data);
+
+      // Fetch related invoice if exists
+      const { data: invoiceData } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("booking_id", id)
+        .maybeSingle();
+
+      if (invoiceData) {
+        setInvoice(invoiceData);
+      }
     } catch (error: any) {
       toast.error("Failed to fetch booking details");
       console.error(error);
@@ -336,9 +348,20 @@ export default function BookingDetails() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Invoiced</span>
-                <Badge variant={booking.invoiced ? "default" : "secondary"}>
-                  {booking.invoiced ? "Yes" : "No"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={booking.invoiced ? "default" : "secondary"}>
+                    {booking.invoiced ? "Yes" : "No"}
+                  </Badge>
+                  {invoice && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/invoices/${invoice.id}`)}
+                    >
+                      View Invoice
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
