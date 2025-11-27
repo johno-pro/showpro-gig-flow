@@ -16,7 +16,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { BookingFormTabbed } from "@/components/BookingFormTabbed";
 
@@ -28,6 +39,14 @@ export default function BookingDetails() {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState({
+    amount_due: "",
+    due_date: "",
+    payment_link: "",
+    artist_payment_link: "",
+  });
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -102,6 +121,53 @@ export default function BookingDetails() {
     } catch (error: any) {
       toast.error(error.message || "Failed to update status");
       console.error(error);
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!invoiceForm.amount_due || !invoiceForm.due_date) {
+      toast.error("Please fill in amount and due date");
+      return;
+    }
+
+    setCreatingInvoice(true);
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .insert({
+          booking_id: id,
+          amount_due: parseFloat(invoiceForm.amount_due),
+          due_date: invoiceForm.due_date,
+          payment_link: invoiceForm.payment_link || null,
+          artist_payment_link: invoiceForm.artist_payment_link || null,
+          status: "unpaid",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update booking to mark as invoiced
+      await supabase
+        .from("bookings")
+        .update({ invoiced: true })
+        .eq("id", id);
+
+      toast.success("Invoice created successfully");
+      setInvoice(data);
+      setShowInvoiceDialog(false);
+      setInvoiceForm({
+        amount_due: "",
+        due_date: "",
+        payment_link: "",
+        artist_payment_link: "",
+      });
+      fetchBooking(); // Refresh booking data
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create invoice");
+      console.error(error);
+    } finally {
+      setCreatingInvoice(false);
     }
   };
 
@@ -352,7 +418,7 @@ export default function BookingDetails() {
                   <Badge variant={booking.invoiced ? "default" : "secondary"}>
                     {booking.invoiced ? "Yes" : "No"}
                   </Badge>
-                  {invoice && (
+                  {invoice ? (
                     <Button
                       size="sm"
                       variant="outline"
@@ -360,6 +426,88 @@ export default function BookingDetails() {
                     >
                       View Invoice
                     </Button>
+                  ) : (
+                    <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline">
+                          <Plus className="mr-2 h-3 w-3" />
+                          Create Invoice
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Create Invoice</DialogTitle>
+                          <DialogDescription>
+                            Create an invoice for this booking. The booking will be marked as invoiced.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="amount_due">Amount Due *</Label>
+                            <Input
+                              id="amount_due"
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={invoiceForm.amount_due}
+                              onChange={(e) =>
+                                setInvoiceForm({ ...invoiceForm, amount_due: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="due_date">Due Date *</Label>
+                            <Input
+                              id="due_date"
+                              type="date"
+                              value={invoiceForm.due_date}
+                              onChange={(e) =>
+                                setInvoiceForm({ ...invoiceForm, due_date: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="payment_link">Payment Link</Label>
+                            <Input
+                              id="payment_link"
+                              type="url"
+                              placeholder="https://..."
+                              value={invoiceForm.payment_link}
+                              onChange={(e) =>
+                                setInvoiceForm({ ...invoiceForm, payment_link: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="artist_payment_link">Artist Payment Link</Label>
+                            <Input
+                              id="artist_payment_link"
+                              type="url"
+                              placeholder="https://..."
+                              value={invoiceForm.artist_payment_link}
+                              onChange={(e) =>
+                                setInvoiceForm({
+                                  ...invoiceForm,
+                                  artist_payment_link: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowInvoiceDialog(false)}
+                            disabled={creatingInvoice}
+                          >
+                            Cancel
+                          </Button>
+                          <Button onClick={handleCreateInvoice} disabled={creatingInvoice}>
+                            {creatingInvoice ? "Creating..." : "Create Invoice"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   )}
                 </div>
               </div>
