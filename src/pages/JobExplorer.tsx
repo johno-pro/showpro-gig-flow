@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Search, Filter, FileText, Eye, Calendar, MapPin, User } from "lucide-react";
 import { format } from "date-fns";
+import { usePersistentTab } from "@/hooks/usePersistentTab";
 
 interface Booking {
   id: string;
@@ -37,6 +38,7 @@ export default function JobExplorer() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = usePersistentTab("job-explorer-active-tab", "all");
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -440,7 +442,7 @@ export default function JobExplorer() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">
             All Bookings ({filteredBookings.length})

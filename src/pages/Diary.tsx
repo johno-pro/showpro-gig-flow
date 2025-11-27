@@ -15,6 +15,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { usePersistentTab } from "@/hooks/usePersistentTab";
 
 interface Booking {
   id: string;
@@ -56,7 +57,7 @@ export default function Diary() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [activeTab, setActiveTab] = useState("month");
+  const [activeTab, setActiveTab] = usePersistentTab("diary-active-tab", "month");
   const monthCalendarRef = useRef<FullCalendar>(null);
   const weekCalendarRef = useRef<FullCalendar>(null);
 
