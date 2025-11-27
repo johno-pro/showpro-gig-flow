@@ -17,7 +17,6 @@ const navigation = [
   { name: "Teams", href: "/teams", icon: UsersRound },
   { name: "Clients", href: "/clients", icon: Briefcase },
   { name: "Locations", href: "/locations", icon: MapPin },
-  { name: "Venues", href: "/venues", icon: Building2 },
   { name: "Contacts", href: "/contacts", icon: UserCircle },
   { name: "Suppliers", href: "/suppliers", icon: Truck },
   { name: "Departments", href: "/departments", icon: Briefcase },

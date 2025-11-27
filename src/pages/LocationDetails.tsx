@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, MapPin, Phone, Mail, Building2, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { VenueManager } from "@/components/VenueManager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,6 @@ export default function LocationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [location, setLocation] = useState<any>(null);
-  const [venues, setVenues] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -30,7 +29,6 @@ export default function LocationDetails() {
   useEffect(() => {
     if (id) {
       fetchLocationDetails();
-      fetchVenues();
       fetchBookings();
     }
   }, [id]);
@@ -53,21 +51,6 @@ export default function LocationDetails() {
       console.error("Error:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchVenues = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("venues")
-        .select("*")
-        .eq("location_id", id)
-        .order("name");
-
-      if (error) throw error;
-      setVenues(data || []);
-    } catch (error: any) {
-      console.error("Error:", error);
     }
   };
 
@@ -194,11 +177,6 @@ export default function LocationDetails() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total Venues</span>
-              <span className="text-2xl font-bold">{venues.length}</span>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Recent Bookings</span>
               <span className="text-2xl font-bold">{bookings.length}</span>
             </div>
@@ -206,49 +184,7 @@ export default function LocationDetails() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Venues ({venues.length})</CardTitle>
-            <Button size="sm" onClick={() => navigate("/venues/new")}>
-              Add Venue
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {venues.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Building2 className="mb-2 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No venues yet</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {venues.map((venue) => (
-                <div
-                  key={venue.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-secondary/50"
-                >
-                  <div>
-                    <p className="font-medium">{venue.name}</p>
-                    {venue.capacity && (
-                      <p className="text-sm text-muted-foreground">
-                        Capacity: {venue.capacity}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(`/venues/${venue.id}`)}
-                  >
-                    View
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <VenueManager locationId={id} />
 
       <Card>
         <CardHeader>
