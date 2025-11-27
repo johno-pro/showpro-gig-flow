@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Download, Upload, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
 import { FieldMappingDialog } from "@/components/FieldMappingDialog";
+import { usePersistentTab } from "@/hooks/usePersistentTab";
 
 type TableName = "artists" | "clients" | "locations" | "venues" | "contacts" | "bookings" | "invoices" | "payments" | "suppliers" | "teams" | "departments" | "emails_queue";
 
@@ -90,6 +91,7 @@ export default function DataManagement() {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = usePersistentTab("data-management-tab", "export");
 
   const convertToCSV = (data: any[], columns: string[]): string => {
     if (!data || data.length === 0) return "";
@@ -350,7 +352,7 @@ export default function DataManagement() {
         <p className="text-muted-foreground">Import and export data for all tables</p>
       </div>
 
-      <Tabs defaultValue="export" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="export">Export Data</TabsTrigger>
           <TabsTrigger value="import">Import Data</TabsTrigger>
