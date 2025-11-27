@@ -26,6 +26,7 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { DraftIndicator } from "@/components/ui/draft-indicator";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useEntityContacts } from "@/hooks/useEntityContacts";
+import { VenueManager } from "@/components/VenueManager";
 
 const locationFormSchema = z.object({
   name: z.string().optional(),
@@ -143,6 +144,15 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
       
       if (locationIdToUse && selectedContactIds.length > 0) {
         await saveEntityContacts(locationIdToUse, selectedContactIds);
+      }
+
+      // Auto-create Main Stage for new locations
+      if (!locationId && locationIdToUse) {
+        await supabase.from("venues").insert({
+          name: "Main Stage",
+          location_id: locationIdToUse,
+          status: "active",
+        });
       }
       
       toast.success(locationId ? "Location updated successfully" : "Location created successfully");
@@ -331,6 +341,8 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
             placeholder="Select contacts..."
           />
         </div>
+
+        <VenueManager locationId={locationId} />
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
