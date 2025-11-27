@@ -35,20 +35,15 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: Part
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
-    defaultValues: defaultValues,
+    defaultValues: {
+      arrival_time: new Date(new Date().setHours(18, 0, 0, 0)),
+      performance_range: { from: new Date(new Date().setHours(19, 0, 0, 0)), to: new Date(new Date().setHours(23, 30, 0, 0)) },
+      total_rate: 150,
+      ...defaultValues,
+    },
   });
 
   useEffect(() => {
-    // Set same-date defaults on load
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);  // Start of day
-
-    form.setValue('arrival_time', new Date(today.setHours(18, 0, 0, 0)));  // 6pm same day
-    const perfFrom = new Date(today.setHours(19, 0, 0, 0));  // 7pm same day
-    const perfTo = new Date(perfFrom.setHours(23, 30, 0, 0));  // 11:30pm same day
-    form.setValue('performance_range', { from: perfFrom, to: perfTo });
-
-    // Fetch dropdowns
     supabase.from('venues').select('id, name').order('name').then(({ data }) => setVenues(data || []));
     supabase.from('artists').select('id, name').order('name').then(({ data }) => setArtists(data || []));
     supabase.from('clients').select('id, name').order('name').then(({ data }) => setClients(data || []));
@@ -135,4 +130,77 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: Part
             </FormItem>
           )} />
           <FormField name="client_id" render={({ field }) => (
-            <FormItem className="mb-
+            <FormItem className="mb-4">
+              <FormLabel>Client</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </TabsContent>
+        <TabsContent value="times">
+          <FormField name="arrival_time" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Arrival (Default 6pm)</FormLabel>
+              <FormControl>
+                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField name="performance_range" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Performance (Default 7pm-11:30pm)</FormLabel>
+              <FormControl>
+                <Calendar mode="range" selected={field.value} onSelect={(range) => field.onChange(range)} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </TabsContent>
+        <TabsContent value="money">
+          <FormField name="total_rate" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Rate (£)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="e.g. 150" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField name="split_ratio" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Split Ratio</FormLabel>
+              <Select onValueChange={(v) => field.onChange(parseFloat(v))} value={field.value.toString()}>
+                <SelectTrigger>
+                  <SelectValue placeholder="85/15" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.85">85/15</SelectItem>
+                  <SelectItem value="0.80">80/20</SelectItem>
+                  <SelectItem value="0.90">90/10</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <p>Artist: {formatGBP(preview.artist)}</p>
+            <p>Agency: {formatGBP(preview.agency)}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+      <div className="flex gap-3 mt-4">
+        <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Draft'}
+        </Button>
+        <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={saving}>
+          {saving
