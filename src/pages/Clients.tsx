@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Building2, Users } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePersistentTab } from "@/hooks/usePersistentTab";
 
 export default function Clients() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "venues" | "clients-only">("all");
+  const [filter, setFilter] = usePersistentTab("clients-filter-tab", "all") as ["all" | "venues" | "clients-only", (value: string) => void];
 
   useEffect(() => {
     supabase

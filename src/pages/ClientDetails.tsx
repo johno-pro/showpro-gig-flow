@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePersistentTab } from "@/hooks/usePersistentTab";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ export default function ClientDetails() {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = usePersistentTab("client-details-tab", "locations");
 
   useEffect(() => {
     if (id) {
@@ -325,7 +327,7 @@ export default function ClientDetails() {
         </div>
       </div>
 
-      <Tabs defaultValue="locations" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="locations">Locations ({locations.length})</TabsTrigger>
           <TabsTrigger value="venues">Venues ({venues.length})</TabsTrigger>
