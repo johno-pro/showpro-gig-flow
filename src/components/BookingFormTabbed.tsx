@@ -54,6 +54,13 @@ export function BookingFormTabbed({
   const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Update currentBookingId if bookingId prop changes
+  useEffect(() => {
+    if (bookingId && bookingId !== currentBookingId) {
+      setCurrentBookingId(bookingId);
+    }
+  }, [bookingId]);
+
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -460,6 +467,47 @@ export function BookingFormTabbed({
               )}
             />
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="split_ratio"
+                render={({ field }) => {
+                  const totalRate = form.watch('total_rate') || 0;
+                  const artistAmount = totalRate * (field.value || 0.85);
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Artist Amount (£)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00"
+                          value={artistAmount.toFixed(2)}
+                          onChange={(e) => {
+                            const newArtistAmount = parseFloat(e.target.value) || 0;
+                            const newRatio = totalRate > 0 ? newArtistAmount / totalRate : 0.85;
+                            field.onChange(Math.min(Math.max(newRatio, 0.5), 0.95));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormItem>
+                <FormLabel>Agency Amount (£)</FormLabel>
+                <Input 
+                  type="number" 
+                  value={preview.agency.toFixed(2)}
+                  disabled
+                  className="bg-muted"
+                />
+              </FormItem>
+            </div>
+
             <FormField
               control={form.control}
               name="split_ratio"
@@ -522,12 +570,12 @@ export function BookingFormTabbed({
               )}
             />
 
-            {bookingId && (
+            {currentBookingId && (
               <div className="pt-4 border-t space-y-4">
                 <CalendarConnectionStatus />
                 <div>
                   <div className="mb-2 text-sm font-medium">Calendar Export</div>
-                  <CalendarSync bookingId={bookingId} bookingData={form.getValues()} />
+                  <CalendarSync bookingId={currentBookingId} bookingData={form.getValues()} />
                 </div>
               </div>
             )}
