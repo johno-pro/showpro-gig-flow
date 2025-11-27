@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,6 +38,8 @@ export function BookingForm({
   const [clients, setClients] = useState([]);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState({ artist: 0, agency: 0 });
+  const draftIdRef = useRef<string | null>(null); // Single draft ID
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -75,51 +77,67 @@ export function BookingForm({
     setPreview({ artist: total_rate * split_ratio, agency: total_rate * (1 - split_ratio) });
   }, [form.watch("split_ratio"), form.watch("total_rate")]);
 
-  const handleSaveDraft = async () => {
-    setSaving(true);
-    const values = form.getValues();
-    
-    const draftData = {
-      artist_id: values.artist_id || null,
-      venue_id: values.venue_id || null,
-      client_id: values.client_id || null,
-      notes: values.notes || null,
-      status: 'enquiry' as const,
-      booking_date: new Date().toISOString().split('T')[0],
-    };
-    
-    const { error } = await supabase.from("bookings").insert(draftData);
-    toast[error ? "error" : "success"](error ? "Draft failed" : "Auto-saved draft!");
-    setSaving(false);
-  };
+  // Load/create single draft ID on mount
+  useEffect(() => {
+    const loadOrCreateDraft = async () => {
+      const { data: existingDraft } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("status", "draft")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
+      if (existingDraft) {
+        draftIdRef.current = existingDraft.id;
+        const { data } = await supabase.from("bookings").select("*").eq("id", existingDraft.id).single();
+        if (data) form.reset(data);
+      } else {
+        const { data: newDraft } = await supabase.from("bookings").insert({ status: "draft" }).select().single();
+        if (newDraft) draftIdRef.current = newDraft.id;
+      }
+    };
+    loadOrCreateDraft();
+  }, []);
+
+  // Auto-save to single draft (debounced, upsert only)
   useEffect(() => {
     const sub = form.watch((value) => {
-      if (Object.values(value).some((v) => v !== "" && v !== undefined)) {
-        const timer = setTimeout(handleSaveDraft, 2000);
-        return () => clearTimeout(timer);
-      }
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        if (draftIdRef.current) {
+          const { error } = await supabase
+            .from("bookings")
+            .update({ ...value, status: "draft" })
+            .eq("id", draftIdRef.current);
+          toast[error ? "error" : "success"]("Draft " + (error ? "failed" : "saved"));
+        }
+      }, 2000);
     });
     return () => sub.unsubscribe();
   }, [form.watch()]);
 
-  const onSubmit = async (data: BookingFormData) => {
+  const handleSaveDraft = async () => {
+    setSaving(true);
+    if (draftIdRef.current) {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ ...form.getValues(), status: "draft" })
+        .eq("id", draftIdRef.current);
+      toast[error ? "error" : "success"]("Draft " + (error ? "failed" : "saved"));
+    }
+    setSaving(false);
+  };
+
+  const onSubmit = async (data) => {
     setSaving(true);
     try {
-      const bookingData = {
-        artist_id: data.artist_id || null,
-        venue_id: data.venue_id || null,
-        client_id: data.client_id || null,
-        notes: data.notes || null,
-        status: 'enquiry' as const,
-        booking_date: new Date().toISOString().split('T')[0],
-      };
-
-      const { error } = await supabase.from("bookings").insert(bookingData);
+      data.status = "pending";
+      const { data: result, error } = await supabase.from("bookings").insert(data);
       if (error) throw error;
       toast.success("Booking created!");
       onSuccess?.();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Booking failed");
     } finally {
       setSaving(false);
