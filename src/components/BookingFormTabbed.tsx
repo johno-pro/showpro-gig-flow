@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -51,6 +51,8 @@ export function BookingFormTabbed({
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState({ artist: 0, agency: 0 });
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -144,16 +146,25 @@ export function BookingFormTabbed({
     const subscription = form.watch(() => {
       const values = form.getValues();
       if (values.client_id || values.artist_id || values.notes) {
-        const timer = setTimeout(() => handleSaveDraft(), 2000);
-        return () => clearTimeout(timer);
+        // Clear existing timer
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+        }
+        // Set new timer
+        autoSaveTimerRef.current = setTimeout(() => handleSaveDraft(), 2000);
       }
     });
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+      subscription.unsubscribe();
+    };
+  }, [currentBookingId]);
 
   const handleSaveDraft = async () => {
     const values = form.getValues();
-    if (!values.client_id) return;
+    if (!values.client_id || saving) return;
 
     setSaving(true);
     const draftData: any = {
@@ -173,12 +184,19 @@ export function BookingFormTabbed({
       booking_date: values.start_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
     };
 
-    const { error } = bookingId
-      ? await supabase.from('bookings').update(draftData).eq('id', bookingId)
-      : await supabase.from('bookings').insert(draftData);
-
-    if (!error) {
-      setLastSaved(new Date());
+    if (currentBookingId) {
+      // Update existing booking
+      const { error } = await supabase.from('bookings').update(draftData).eq('id', currentBookingId);
+      if (!error) {
+        setLastSaved(new Date());
+      }
+    } else {
+      // Insert new booking and capture the ID
+      const { data, error } = await supabase.from('bookings').insert(draftData).select('id').single();
+      if (!error && data) {
+        setCurrentBookingId(data.id);
+        setLastSaved(new Date());
+      }
     }
     setSaving(false);
   };
@@ -203,12 +221,12 @@ export function BookingFormTabbed({
         booking_date: data.start_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
       };
 
-      const { error } = bookingId
-        ? await supabase.from('bookings').update(bookingData).eq('id', bookingId)
+      const { error } = currentBookingId
+        ? await supabase.from('bookings').update(bookingData).eq('id', currentBookingId)
         : await supabase.from('bookings').insert(bookingData);
 
       if (error) throw error;
-      toast.success(bookingId ? 'Booking updated!' : 'Booking created!');
+      toast.success(currentBookingId ? 'Booking updated!' : 'Booking created!');
       onSuccess?.();
     } catch (err: any) {
       toast.error(err.message || 'Failed to save booking');
