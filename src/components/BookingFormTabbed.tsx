@@ -53,6 +53,7 @@ export function BookingFormTabbed({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [calculationMode, setCalculationMode] = useState<'split' | 'commission'>('split');
 
   // Update currentBookingId if bookingId prop changes
   useEffect(() => {
@@ -467,6 +468,56 @@ export function BookingFormTabbed({
               )}
             />
 
+            <div className="flex gap-2 mb-4">
+              <Button
+                type="button"
+                variant={calculationMode === 'split' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCalculationMode('split')}
+              >
+                Split Ratio
+              </Button>
+              <Button
+                type="button"
+                variant={calculationMode === 'commission' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCalculationMode('commission')}
+              >
+                Commission %
+              </Button>
+            </div>
+
+            {calculationMode === 'commission' ? (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <div className="text-sm font-medium mb-2">Commission Calculator</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormItem>
+                    <FormLabel>Commission % (Agency)</FormLabel>
+                    <Input 
+                      type="number" 
+                      step="0.1" 
+                      placeholder="15.0"
+                      onChange={(e) => {
+                        const commission = parseFloat(e.target.value) || 15;
+                        const splitRatio = (100 - commission) / 100;
+                        form.setValue('split_ratio', Math.min(Math.max(splitRatio, 0.5), 0.95));
+                      }}
+                      defaultValue="15"
+                    />
+                  </FormItem>
+                  <FormItem>
+                    <FormLabel>Artist % (Calculated)</FormLabel>
+                    <Input 
+                      type="number" 
+                      value={(form.watch('split_ratio') * 100).toFixed(1)}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </FormItem>
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -497,11 +548,50 @@ export function BookingFormTabbed({
                 }}
               />
 
+              <FormField
+                control={form.control}
+                name="split_ratio"
+                render={({ field }) => {
+                  const percentage = (field.value || 0.85) * 100;
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Artist % (Direct)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="85.0"
+                          value={percentage.toFixed(1)}
+                          onChange={(e) => {
+                            const newPercentage = parseFloat(e.target.value) || 85;
+                            field.onChange(Math.min(Math.max(newPercentage / 100, 0.5), 0.95));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <FormItem>
                 <FormLabel>Agency Amount (£)</FormLabel>
                 <Input 
                   type="number" 
                   value={preview.agency.toFixed(2)}
+                  disabled
+                  className="bg-muted"
+                />
+              </FormItem>
+
+              <FormItem>
+                <FormLabel>Agency % (Calculated)</FormLabel>
+                <Input 
+                  type="number" 
+                  value={((1 - (form.watch('split_ratio') || 0.85)) * 100).toFixed(1)}
                   disabled
                   className="bg-muted"
                 />
@@ -532,7 +622,7 @@ export function BookingFormTabbed({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Fee Split Preview</CardTitle>
+                <CardTitle className="text-sm">Fee Split Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
@@ -542,6 +632,9 @@ export function BookingFormTabbed({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Agency gets:</span>
                   <span className="font-semibold">{formatGBP(preview.agency)}</span>
+                </div>
+                <div className="pt-2 border-t text-xs text-muted-foreground">
+                  {Math.round((form.watch('split_ratio') || 0.85) * 100)}% / {Math.round((1 - (form.watch('split_ratio') || 0.85)) * 100)}% split
                 </div>
               </CardContent>
             </Card>
