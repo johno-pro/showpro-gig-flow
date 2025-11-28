@@ -132,6 +132,9 @@ export default function BookingDetails() {
 
     setCreatingInvoice(true);
     try {
+      // Generate invoice_number from booking job_code
+      let invoiceNumber = booking.job_code;
+      
       const { data, error } = await supabase
         .from("invoices")
         .insert({
@@ -140,7 +143,8 @@ export default function BookingDetails() {
           due_date: invoiceForm.due_date,
           payment_link: invoiceForm.payment_link || null,
           artist_payment_link: invoiceForm.artist_payment_link || null,
-          status: "unpaid",
+          invoice_number: invoiceNumber,
+          status: "draft",
         })
         .select()
         .single();
@@ -429,7 +433,7 @@ export default function BookingDetails() {
                   ) : (
                     <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
                       <DialogTrigger asChild>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" disabled={booking.invoiced}>
                           <Plus className="mr-2 h-3 w-3" />
                           Create Invoice
                         </Button>
