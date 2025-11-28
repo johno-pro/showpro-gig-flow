@@ -139,6 +139,7 @@ export type Database = {
           arrival_time: string | null
           artist_fee: number | null
           artist_id: string | null
+          artist_paid: boolean | null
           artist_status: Database["public"]["Enums"]["booking_status"] | null
           balance_paid: boolean | null
           booking_date: string
@@ -146,6 +147,7 @@ export type Database = {
           client_contact_name: string | null
           client_fee: number | null
           client_id: string
+          client_paid: boolean | null
           client_status: Database["public"]["Enums"]["booking_status"] | null
           commission_percent: number | null
           commission_rate: number | null
@@ -162,6 +164,7 @@ export type Database = {
           finish_time: string | null
           gig_type_id: string | null
           id: string
+          invoice_sent: boolean | null
           invoice_status: string | null
           invoiced: boolean | null
           job_code: string | null
@@ -194,6 +197,7 @@ export type Database = {
           arrival_time?: string | null
           artist_fee?: number | null
           artist_id?: string | null
+          artist_paid?: boolean | null
           artist_status?: Database["public"]["Enums"]["booking_status"] | null
           balance_paid?: boolean | null
           booking_date: string
@@ -201,6 +205,7 @@ export type Database = {
           client_contact_name?: string | null
           client_fee?: number | null
           client_id: string
+          client_paid?: boolean | null
           client_status?: Database["public"]["Enums"]["booking_status"] | null
           commission_percent?: number | null
           commission_rate?: number | null
@@ -217,6 +222,7 @@ export type Database = {
           finish_time?: string | null
           gig_type_id?: string | null
           id?: string
+          invoice_sent?: boolean | null
           invoice_status?: string | null
           invoiced?: boolean | null
           job_code?: string | null
@@ -249,6 +255,7 @@ export type Database = {
           arrival_time?: string | null
           artist_fee?: number | null
           artist_id?: string | null
+          artist_paid?: boolean | null
           artist_status?: Database["public"]["Enums"]["booking_status"] | null
           balance_paid?: boolean | null
           booking_date?: string
@@ -256,6 +263,7 @@ export type Database = {
           client_contact_name?: string | null
           client_fee?: number | null
           client_id?: string
+          client_paid?: boolean | null
           client_status?: Database["public"]["Enums"]["booking_status"] | null
           commission_percent?: number | null
           commission_rate?: number | null
@@ -272,6 +280,7 @@ export type Database = {
           finish_time?: string | null
           gig_type_id?: string | null
           id?: string
+          invoice_sent?: boolean | null
           invoice_status?: string | null
           invoiced?: boolean | null
           job_code?: string | null
@@ -959,6 +968,41 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_actions: {
+        Row: {
+          action: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_actions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_batches: {
         Row: {
           batch_date: string
@@ -1014,7 +1058,9 @@ export type Database = {
           created_at: string | null
           due_date: string
           id: string
+          invoice_number: string | null
           payment_link: string | null
+          sent_at: string | null
           status: string | null
           updated_at: string | null
         }
@@ -1025,7 +1071,9 @@ export type Database = {
           created_at?: string | null
           due_date: string
           id?: string
+          invoice_number?: string | null
           payment_link?: string | null
+          sent_at?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -1036,7 +1084,9 @@ export type Database = {
           created_at?: string | null
           due_date?: string
           id?: string
+          invoice_number?: string | null
           payment_link?: string | null
+          sent_at?: string | null
           status?: string | null
           updated_at?: string | null
         }
