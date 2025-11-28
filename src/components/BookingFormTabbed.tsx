@@ -681,15 +681,34 @@ export function BookingFormTabbed({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormItem>
-                <FormLabel>Agency Amount (£)</FormLabel>
-                <Input 
-                  type="number" 
-                  value={preview.agency.toFixed(2)}
-                  disabled
-                  className="bg-muted"
-                />
-              </FormItem>
+              <FormField
+                control={form.control}
+                name="split_ratio"
+                render={({ field }) => {
+                  const totalRate = form.watch('total_rate') || 0;
+                  const agencyAmount = totalRate * (1 - (field.value || 0.85));
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Agency Amount (£)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00"
+                          value={agencyAmount.toFixed(2)}
+                          onChange={(e) => {
+                            const newAgencyAmount = parseFloat(e.target.value) || 0;
+                            const newRatio = totalRate > 0 ? 1 - (newAgencyAmount / totalRate) : 0.85;
+                            field.onChange(Math.min(Math.max(newRatio, 0.5), 0.95));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
 
               <FormItem>
                 <FormLabel>Agency % (Calculated)</FormLabel>
@@ -701,28 +720,6 @@ export function BookingFormTabbed({
                 />
               </FormItem>
             </div>
-
-            <FormField
-              control={form.control}
-              name="split_ratio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Artist Split: {Math.round((field.value || 0.85) * 100)}%
-                  </FormLabel>
-                  <FormControl>
-                    <Slider
-                      min={50}
-                      max={95}
-                      step={1}
-                      value={[Math.round((field.value || 0.85) * 100)]}
-                      onValueChange={(values) => field.onChange(values[0] / 100)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
