@@ -31,6 +31,7 @@ import { useEntityContacts } from "@/hooks/useEntityContacts";
 
 const artistFormSchema = z.object({
   name: z.string().trim().optional(),
+  act_code: z.string().trim().optional(),
   full_name: z.string().trim().optional(),
   act_type: z.string().trim().optional(),
   supplier_id: z.string().optional(),
@@ -68,6 +69,7 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
     resolver: zodResolver(artistFormSchema),
     defaultValues: {
       name: "",
+      act_code: "",
       full_name: "",
       act_type: "",
       supplier_id: "",
@@ -122,6 +124,7 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
       if (data) {
         form.reset({
           name: data.name,
+          act_code: data.act_code || "",
           full_name: data.full_name || "",
           act_type: data.act_type || "",
           supplier_id: data.supplier_id || "",
@@ -194,6 +197,7 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
 
       const artistData = {
         name: sanitizeText(values.name, 200),
+        act_code: values.act_code ? sanitizeText(values.act_code, 20).toUpperCase() : null,
         full_name: values.full_name ? sanitizeText(values.full_name, 200) : null,
         act_type: values.act_type ? sanitizeText(values.act_type, 100) : null,
         supplier_id: values.supplier_id || null,
@@ -249,6 +253,24 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
                 <FormLabel>Professional Name *</FormLabel>
                 <FormControl>
                   <Input placeholder="Stage or professional name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="act_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Act Code</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="e.g., ALLY, JD" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
