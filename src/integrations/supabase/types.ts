@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       artists: {
         Row: {
+          act_code: string | null
           act_type: string | null
           buy_fee: number | null
           created_at: string | null
@@ -36,6 +37,7 @@ export type Database = {
           vat_rate: number | null
         }
         Insert: {
+          act_code?: string | null
           act_type?: string | null
           buy_fee?: number | null
           created_at?: string | null
@@ -56,6 +58,7 @@ export type Database = {
           vat_rate?: number | null
         }
         Update: {
+          act_code?: string | null
           act_type?: string | null
           buy_fee?: number | null
           created_at?: string | null
