@@ -5,7 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Calendar, DollarSign, FileText, ExternalLink } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Calendar, DollarSign, FileText, ExternalLink, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function InvoiceDetails() {
@@ -14,6 +25,7 @@ export default function InvoiceDetails() {
   const [invoice, setInvoice] = useState<any>(null);
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -63,6 +75,35 @@ export default function InvoiceDetails() {
     }
   };
 
+  const handleCancelInvoice = async () => {
+    setCancelling(true);
+    try {
+      // Update invoice status to cancelled
+      const { error: invoiceError } = await supabase
+        .from("invoices")
+        .update({ status: "cancelled" })
+        .eq("id", id);
+
+      if (invoiceError) throw invoiceError;
+
+      // Update booking's invoiced flag to false
+      const { error: bookingError } = await supabase
+        .from("bookings")
+        .update({ invoiced: false })
+        .eq("id", invoice.booking_id);
+
+      if (bookingError) throw bookingError;
+
+      toast.success("Invoice cancelled successfully");
+      fetchInvoice(); // Refresh the data
+    } catch (error: any) {
+      toast.error("Failed to cancel invoice");
+      console.error(error);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center">Loading invoice details...</div>;
   }
@@ -83,6 +124,31 @@ export default function InvoiceDetails() {
             <p className="text-muted-foreground">View invoice information</p>
           </div>
         </div>
+        {invoice?.status !== "cancelled" && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={cancelling}>
+                <XCircle className="mr-2 h-4 w-4" />
+                Cancel Invoice
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Invoice?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will cancel the invoice and mark the booking as not invoiced. 
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No, keep invoice</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCancelInvoice}>
+                  Yes, cancel invoice
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
