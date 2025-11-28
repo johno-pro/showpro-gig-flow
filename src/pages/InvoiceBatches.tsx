@@ -13,7 +13,10 @@ export default function InvoiceBatches() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoice_batches")
-        .select("*")
+        .select(`
+          *,
+          clients(name)
+        `)
         .order("batch_date", { ascending: false });
       if (error) throw error;
       return data;
@@ -44,6 +47,7 @@ export default function InvoiceBatches() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Batch Date</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead>Invoice Number</TableHead>
                   <TableHead>Total Amount</TableHead>
                   <TableHead>Status</TableHead>
@@ -56,13 +60,14 @@ export default function InvoiceBatches() {
                     <TableCell>
                       {new Date(batch.batch_date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>{batch.invoice_number || "-"}</TableCell>
-                    <TableCell>
-                      {batch.total_amount ? `£${batch.total_amount}` : "-"}
+                    <TableCell>{(batch.clients as any)?.name || "-"}</TableCell>
+                    <TableCell className="font-mono">{batch.invoice_number || "-"}</TableCell>
+                    <TableCell className="font-semibold">
+                      {batch.total_amount ? `£${batch.total_amount.toFixed(2)}` : "-"}
                     </TableCell>
                     <TableCell>
                       {batch.sent ? (
-                        <Badge variant="success">Sent</Badge>
+                        <Badge>Sent</Badge>
                       ) : (
                         <Badge variant="secondary">Draft</Badge>
                       )}
