@@ -54,6 +54,7 @@ export function BookingFormTabbed({
   const [preview, setPreview] = useState({ artist: 0, agency: 0 });
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
+  const [loadingBooking, setLoadingBooking] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [calculationMode, setCalculationMode] = useState<'split' | 'commission'>('split');
   const [defaultSplit, setDefaultSplit] = useState<number>(0.85);
@@ -123,6 +124,7 @@ export function BookingFormTabbed({
   const fetchBooking = async () => {
     if (!bookingId) return;
     
+    setLoadingBooking(true);
     const { data, error } = await supabase
       .from('bookings')
       .select('*')
@@ -155,6 +157,7 @@ export function BookingFormTabbed({
         fetchLocations(data.client_id);
       }
     }
+    setLoadingBooking(false);
   };
 
   const fetchLocations = async (clientId: string) => {
@@ -187,9 +190,12 @@ export function BookingFormTabbed({
     return () => subscription.unsubscribe();
   }, [form.watch]);
 
-  // Auto-save draft every 2 seconds
+  // Auto-save draft every 2 seconds (but not while loading booking data)
   useEffect(() => {
     const subscription = form.watch(() => {
+      // Don't auto-save while loading existing booking data
+      if (loadingBooking) return;
+      
       const values = form.getValues();
       if (values.client_id || values.artist_id || values.notes) {
         // Clear existing timer
@@ -206,7 +212,7 @@ export function BookingFormTabbed({
       }
       subscription.unsubscribe();
     };
-  }, [currentBookingId]);
+  }, [currentBookingId, loadingBooking]);
 
   const handleSaveDraft = async () => {
     const values = form.getValues();
