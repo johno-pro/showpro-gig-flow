@@ -1003,9 +1003,53 @@ export type Database = {
           },
         ]
       }
+      invoice_batch_bookings: {
+        Row: {
+          batch_id: string
+          booking_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          batch_id: string
+          booking_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          batch_id?: string
+          booking_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_batch_bookings_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_batch_bookings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_batch_bookings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_public_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_batches: {
         Row: {
           batch_date: string
+          batch_invoice_id: string | null
           client_id: string | null
           created_at: string | null
           id: string
@@ -1018,6 +1062,7 @@ export type Database = {
         }
         Insert: {
           batch_date: string
+          batch_invoice_id?: string | null
           client_id?: string | null
           created_at?: string | null
           id?: string
@@ -1030,6 +1075,7 @@ export type Database = {
         }
         Update: {
           batch_date?: string
+          batch_invoice_id?: string | null
           client_id?: string | null
           created_at?: string | null
           id?: string
@@ -1041,6 +1087,13 @@ export type Database = {
           total_amount?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoice_batches_batch_invoice_id_fkey"
+            columns: ["batch_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoice_batches_client_id_fkey"
             columns: ["client_id"]
