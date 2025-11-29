@@ -159,8 +159,11 @@ export function BookingFormTabbed({
         fetchLocations(data.client_id);
       }
     }
-    isLoadingRef.current = false;
     setLoadingBooking(false);
+    // Delay clearing the loading ref to ensure form has fully settled
+    setTimeout(() => {
+      isLoadingRef.current = false;
+    }, 100);
   };
 
   const fetchLocations = async (clientId: string) => {
@@ -215,7 +218,7 @@ export function BookingFormTabbed({
       }
       subscription.unsubscribe();
     };
-  }, [currentBookingId, loadingBooking]);
+  }, [currentBookingId]);
 
   const handleSaveDraft = async () => {
     const values = form.getValues();
