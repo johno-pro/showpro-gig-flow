@@ -16,6 +16,7 @@ import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarSync } from './CalendarSync';
 import { CalendarConnectionStatus } from './CalendarConnectionStatus';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 const bookingSchema = z.object({
   artist_id: z.string().optional(),
@@ -137,14 +138,27 @@ export function BookingFormTabbed({
       // Ensure currentBookingId is set when editing
       setCurrentBookingId(bookingId);
       
+      // Combine date and time into datetime objects
+      const startDateTime = new Date(data.start_date || new Date());
+      if (data.start_time) {
+        const [hours, minutes] = data.start_time.split(':');
+        startDateTime.setHours(parseInt(hours), parseInt(minutes), 0);
+      }
+      
+      const endDateTime = new Date(data.finish_date || data.start_date || new Date());
+      if (data.end_time) {
+        const [hours, minutes] = data.end_time.split(':');
+        endDateTime.setHours(parseInt(hours), parseInt(minutes), 0);
+      }
+      
       form.reset({
         artist_id: data.artist_id || '',
         venue_id: data.venue_id || '',
         client_id: data.client_id,
         location_id: data.location_id || '',
         arrival_time: data.arrival_time || '18:00',
-        start_date: data.start_date ? new Date(data.start_date) : new Date(),
-        end_date: data.finish_date ? new Date(data.finish_date) : new Date(),
+        start_date: startDateTime,
+        end_date: endDateTime,
         start_time: data.start_time || '19:00',
         end_time: data.end_time || '23:30',
         total_rate: data.sell_fee || 150,
@@ -434,85 +448,59 @@ export function BookingFormTabbed({
           </TabsContent>
 
           <TabsContent value="times" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      className="rounded-md border"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="start_date"
+              render={({ field }) => (
+                <FormItem>
+                  <DateTimePicker
+                    label="Performance Start"
+                    value={field.value || new Date()}
+                    onChange={(date) => {
+                      field.onChange(date);
+                      // Also update start_time to match
+                      const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                      form.setValue('start_time', timeStr);
+                    }}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="end_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      className="rounded-md border"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="end_date"
+              render={({ field }) => (
+                <FormItem>
+                  <DateTimePicker
+                    label="Performance End"
+                    value={field.value || new Date()}
+                    onChange={(date) => {
+                      field.onChange(date);
+                      // Also update end_time to match
+                      const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                      form.setValue('end_time', timeStr);
+                    }}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="arrival_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Arrival Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} placeholder="18:00" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="start_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Performance Start</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} placeholder="19:00" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="end_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Performance End</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} placeholder="23:30" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="arrival_time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Arrival Time</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} placeholder="18:00" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </TabsContent>
 
           <TabsContent value="money" className="space-y-4">
