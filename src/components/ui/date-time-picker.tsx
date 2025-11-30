@@ -1,7 +1,11 @@
-import React from "react";
-import { Popover } from "@headlessui/react";
-import { DayPicker } from "react-day-picker";
-import "react-day-picker/dist/style.css";
+import * as React from "react";
+import { format } from "date-fns";
+import { CalendarIcon, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type DateTimePickerProps = {
   label: string;
@@ -14,10 +18,21 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   value,
   onChange,
 }) => {
-  // Ensure local safe default
   const safeDate = value ? new Date(value) : new Date();
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const [open, setOpen] = React.useState(false);
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
   const minutes = ["00", "15", "30", "45", "59"];
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const updated = new Date(safeDate);
+    updated.setFullYear(date.getFullYear());
+    updated.setMonth(date.getMonth());
+    updated.setDate(date.getDate());
+    onChange(updated);
+    setOpen(false);
+  };
 
   const handleTimeChange = (type: "hour" | "minute", newVal: string) => {
     const updated = new Date(safeDate);
@@ -28,57 +43,63 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 mb-4">
-      <label className="font-medium text-sm">{label}</label>
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-medium">{label}</label>
       <div className="flex items-center gap-3">
-        {/* DATE POPUP */}
-        <Popover className="relative">
-          <Popover.Button className="border rounded-md px-3 py-2 bg-white text-left cursor-pointer w-40 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            {safeDate.toLocaleDateString("en-GB", {
-              weekday: "short",
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })}
-          </Popover.Button>
-          <Popover.Panel className="absolute z-50 bg-white shadow-lg p-3 rounded-md mt-2">
-            <DayPicker
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[200px] justify-start text-left font-normal",
+                !value && "text-muted-foreground"
+              )}
+            >
+              {format(safeDate, "EEE dd MMM yyyy")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
               mode="single"
               selected={safeDate}
-              onSelect={(d) => {
-                if (!d) return;
-                const updated = new Date(safeDate);
-                updated.setFullYear(d.getFullYear());
-                updated.setMonth(d.getMonth());
-                updated.setDate(d.getDate());
-                onChange(updated);
-              }}
+              onSelect={handleDateSelect}
+              initialFocus
+              className="pointer-events-auto"
             />
-          </Popover.Panel>
+          </PopoverContent>
         </Popover>
-        {/* TIME SELECTORS */}
-        <select
-          className="border rounded-md px-2 py-2 bg-white hover:border-blue-400 focus:ring-2 focus:ring-blue-500"
-          value={safeDate.getHours()}
-          onChange={(e) => handleTimeChange("hour", e.target.value)}
+
+        <Select
+          value={String(safeDate.getHours()).padStart(2, "0")}
+          onValueChange={(val) => handleTimeChange("hour", val)}
         >
-          {hours.map((h) => (
-            <option key={h} value={h}>
-              {String(h).padStart(2, "0")}
-            </option>
-          ))}
-        </select>
-        <select
-          className="border rounded-md px-2 py-2 bg-white hover:border-blue-400 focus:ring-2 focus:ring-blue-500"
+          <SelectTrigger className="w-[80px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {hours.map((h) => (
+              <SelectItem key={h} value={h}>
+                {h}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
           value={String(safeDate.getMinutes()).padStart(2, "0")}
-          onChange={(e) => handleTimeChange("minute", e.target.value)}
+          onValueChange={(val) => handleTimeChange("minute", val)}
         >
-          {minutes.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-[80px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {minutes.map((m) => (
+              <SelectItem key={m} value={m}>
+                {m}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
