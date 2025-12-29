@@ -87,13 +87,28 @@ export function BookingFormTabbed({
     form.setValue('split_ratio', ratio);
   };
 
+  // Helper to check if artist is a reindeer act
+  const isReindeerAct = (artistId: string | undefined) => {
+    if (!artistId) return false;
+    const artist = artists.find(a => a.id === artistId);
+    return artist?.name?.toLowerCase().includes('reindeer');
+  };
+
+  // Get default times based on artist type
+  const getDefaultTimes = (artistId?: string) => {
+    if (isReindeerAct(artistId)) {
+      return { start: "12:00", end: "16:00", arrival: "11:00" };
+    }
+    return { start: "19:30", end: "23:30", arrival: "18:30" };
+  };
+
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      arrival_time: "18:00",
+      arrival_time: "18:30",
       start_date: new Date(),
       end_date: new Date(),
-      start_time: "19:00",
+      start_time: "19:30",
       end_time: "23:30",
       total_rate: 150,
       split_ratio: 0.85,
@@ -406,7 +421,28 @@ export function BookingFormTabbed({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Artist</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Apply default times based on artist type (only for new bookings)
+                      if (!bookingId) {
+                        const defaults = getDefaultTimes(value);
+                        form.setValue('start_time', defaults.start);
+                        form.setValue('end_time', defaults.end);
+                        form.setValue('arrival_time', defaults.arrival);
+                        // Update the date objects with new times
+                        const startDate = form.getValues('start_date') || new Date();
+                        const endDate = form.getValues('end_date') || new Date();
+                        const [startH, startM] = defaults.start.split(':').map(Number);
+                        const [endH, endM] = defaults.end.split(':').map(Number);
+                        startDate.setHours(startH, startM, 0);
+                        endDate.setHours(endH, endM, 0);
+                        form.setValue('start_date', new Date(startDate));
+                        form.setValue('end_date', new Date(endDate));
+                      }
+                    }} 
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select artist" />
