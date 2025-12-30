@@ -41,10 +41,7 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
   const { data: artists } = useQuery({
     queryKey: ["artists"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("artists")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from("artists").select("*").order("name");
       if (error) throw error;
       return data;
     },
@@ -53,10 +50,7 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
   const { data: venues } = useQuery({
     queryKey: ["venues"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("venues")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from("venues").select("*").order("name");
       if (error) throw error;
       return data;
     },
@@ -65,10 +59,7 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
   const { data: clients } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from("clients").select("*").order("name");
       if (error) throw error;
       return data;
     },
@@ -256,3 +247,41 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
     </Tabs>
   );
 }
+// Auto-default performance times based on keywords
+useEffect(() => {
+  const { artist_id, notes = "" } = form.watch();
+  const lowerNotes = notes.toLowerCase();
+
+  // Fetch artist name if needed (or pass from dropdown data)
+  const artist = artists.find((a) => a.id === artist_id);
+  const artistName = artist?.name?.toLowerCase() || "";
+
+  const combinedText = `${artistName} ${lowerNotes}`;
+
+  let defaultStart = new Date();
+  let defaultEnd = new Date();
+
+  if (
+    combinedText.includes("wrestling") ||
+    combinedText.includes("waw") ||
+    combinedText.includes("megaslam") ||
+    combinedText.includes("mega slam")
+  ) {
+    // Wrestling: 14:00–16:00
+    defaultStart.setHours(14, 0, 0, 0);
+    defaultEnd.setHours(16, 0, 0, 0);
+  } else if (combinedText.includes("reindeer")) {
+    // Reindeer: 12:00–16:00
+    defaultStart.setHours(12, 0, 0, 0);
+    defaultEnd.setHours(16, 0, 0, 0);
+  } else {
+    // Default: 19:30–23:30
+    defaultStart.setHours(19, 30, 0, 0);
+    defaultEnd.setHours(23, 30, 0, 0);
+  }
+
+  form.setValue("performance_range", {
+    from: defaultStart,
+    to: defaultEnd,
+  });
+}, [form.watch("artist_id"), form.watch("notes"), artists]);
