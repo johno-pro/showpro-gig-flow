@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +37,10 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
 
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+
+  // Watch form values for auto-defaults
+  const watchedArtistId = form.watch("artist_id");
+  const watchedNotes = form.watch("notes") || "";
 
   const { data: artists } = useQuery({
     queryKey: ["artists"],
@@ -88,6 +92,35 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
       setSaving(false);
     }
   };
+
+  // Auto-default performance times based on keywords
+  useEffect(() => {
+    if (!watchedArtistId || !artists) return;
+    
+    const artist = artists.find((a) => a.id === watchedArtistId);
+    const artistName = artist?.name?.toLowerCase() || "";
+    const lowerNotes = watchedNotes.toLowerCase();
+    const combinedText = `${artistName} ${lowerNotes}`;
+
+    let startTime = "19:30";
+    let finishTime = "23:30";
+
+    if (
+      combinedText.includes("wrestling") ||
+      combinedText.includes("waw") ||
+      combinedText.includes("megaslam") ||
+      combinedText.includes("mega slam")
+    ) {
+      startTime = "14:00";
+      finishTime = "16:00";
+    } else if (combinedText.includes("reindeer")) {
+      startTime = "12:00";
+      finishTime = "16:00";
+    }
+
+    form.setValue("start_time", startTime);
+    form.setValue("finish_time", finishTime);
+  }, [watchedArtistId, watchedNotes, artists, form]);
 
   return (
     <Tabs defaultValue="details" className="w-full">
@@ -247,41 +280,3 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
     </Tabs>
   );
 }
-// Auto-default performance times based on keywords
-useEffect(() => {
-  const { artist_id, notes = "" } = form.watch();
-  const lowerNotes = notes.toLowerCase();
-
-  // Fetch artist name if needed (or pass from dropdown data)
-  const artist = artists.find((a) => a.id === artist_id);
-  const artistName = artist?.name?.toLowerCase() || "";
-
-  const combinedText = `${artistName} ${lowerNotes}`;
-
-  let defaultStart = new Date();
-  let defaultEnd = new Date();
-
-  if (
-    combinedText.includes("wrestling") ||
-    combinedText.includes("waw") ||
-    combinedText.includes("megaslam") ||
-    combinedText.includes("mega slam")
-  ) {
-    // Wrestling: 14:00–16:00
-    defaultStart.setHours(14, 0, 0, 0);
-    defaultEnd.setHours(16, 0, 0, 0);
-  } else if (combinedText.includes("reindeer")) {
-    // Reindeer: 12:00–16:00
-    defaultStart.setHours(12, 0, 0, 0);
-    defaultEnd.setHours(16, 0, 0, 0);
-  } else {
-    // Default: 19:30–23:30
-    defaultStart.setHours(19, 30, 0, 0);
-    defaultEnd.setHours(23, 30, 0, 0);
-  }
-
-  form.setValue("performance_range", {
-    from: defaultStart,
-    to: defaultEnd,
-  });
-}, [form.watch("artist_id"), form.watch("notes"), artists]);
