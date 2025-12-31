@@ -28,6 +28,12 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Service role client for oauth_states table
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
@@ -138,10 +144,33 @@ serve(async (req) => {
     if (action === 'export') {
       const validToken = await ensureValidToken();
       if (!validToken) {
-        // Return OAuth URL
+        // Generate cryptographically secure state token
+        const stateToken = crypto.randomUUID();
+        
+        // Store state token with user_id and 10 minute expiration
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        
+        // Clean up expired states first
+        await supabaseAdmin.from('oauth_states').delete().lt('expires_at', new Date().toISOString());
+        
+        // Insert new state token
+        const { error: insertError } = await supabaseAdmin.from('oauth_states').insert({
+          state_token: stateToken,
+          user_id: user.id,
+          expires_at: expiresAt.toISOString(),
+        });
+
+        if (insertError) {
+          console.error('Failed to store OAuth state:', insertError);
+          throw new Error('Failed to initiate OAuth flow');
+        }
+
+        console.log('Created OAuth state token for user:', user.id, 'expires:', expiresAt.toISOString());
+
+        // Return OAuth URL with secure state token (not user_id)
         const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-oauth-callback`;
         const scope = 'https://www.googleapis.com/auth/calendar.events';
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${user.id}`;
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${stateToken}`;
 
         return new Response(
           JSON.stringify({ authUrl }),
