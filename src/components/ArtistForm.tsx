@@ -24,8 +24,6 @@ import {
 import { toast } from "sonner";
 import { Upload, FileText, X } from "lucide-react";
 import { sanitizeText, sanitizeFileName } from "@/lib/sanitize";
-import { useFormDraft } from "@/hooks/useFormDraft";
-import { DraftIndicator } from "@/components/ui/draft-indicator";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useEntityContacts } from "@/hooks/useEntityContacts";
 
@@ -83,10 +81,6 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
     },
   });
 
-  const { saveDraft, completeSave, draftStatus } = useFormDraft({
-    table: "artists",
-    form,
-  });
 
   useEffect(() => {
     fetchSuppliers();
@@ -214,7 +208,11 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
       let savedArtistId = artistId;
 
       if (artistId) {
-        await completeSave(artistData as any);
+        const { error } = await supabase
+          .from("artists")
+          .update(artistData)
+          .eq("id", artistId);
+        if (error) throw error;
       } else {
         const { data: newArtist, error } = await supabase
           .from("artists")
@@ -521,21 +519,15 @@ export function ArtistForm({ artistId, onSuccess, onCancel }: ArtistFormProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <DraftIndicator status={draftStatus} />
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
-              Save Draft
+        <div className="flex gap-3 justify-end">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : artistId ? "Update Artist" : "Create Artist"}
+          </Button>
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+              Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : artistId ? "Update Artist" : "Create Artist"}
-            </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-                Cancel
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </form>
     </Form>

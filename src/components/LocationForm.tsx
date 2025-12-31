@@ -22,8 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useFormDraft } from "@/hooks/useFormDraft";
-import { DraftIndicator } from "@/components/ui/draft-indicator";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useEntityContacts } from "@/hooks/useEntityContacts";
 import { VenueManager } from "@/components/VenueManager";
@@ -70,10 +68,6 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
     },
   });
 
-  const { saveDraft, completeSave, draftStatus } = useFormDraft({
-    table: "locations",
-    form,
-  });
 
   const {
     contacts,
@@ -139,9 +133,38 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
   const onSubmit = async (values: LocationFormValues) => {
     setLoading(true);
     try {
-      const savedData = await completeSave(values);
-      const locationIdToUse = locationId || (savedData as any)?.id;
-      
+      const locationData = {
+        name: values.name || "",
+        client_id: values.client_id || null,
+        address: values.address || null,
+        postcode: values.postcode || null,
+        phone: values.phone || null,
+        email: values.email || null,
+        ents_contact_name: values.ents_contact_name || null,
+        ents_contact_mobile: values.ents_contact_mobile || null,
+        ents_contact_email: values.ents_contact_email || null,
+        notes: values.notes || null,
+        status: "active",
+      };
+
+      let locationIdToUse = locationId;
+
+      if (locationId) {
+        const { error } = await supabase
+          .from("locations")
+          .update(locationData)
+          .eq("id", locationId);
+        if (error) throw error;
+      } else {
+        const { data: newLocation, error } = await supabase
+          .from("locations")
+          .insert([locationData])
+          .select()
+          .single();
+        if (error) throw error;
+        locationIdToUse = newLocation.id;
+      }
+
       if (locationIdToUse && selectedContactIds.length > 0) {
         await saveEntityContacts(locationIdToUse, selectedContactIds);
       }
@@ -168,7 +191,6 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <DraftIndicator status={draftStatus} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -177,7 +199,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
               <FormItem>
                 <FormLabel>Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Location name" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                  <Input placeholder="Location name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -190,7 +212,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Client *</FormLabel>
-                <Select onValueChange={(value) => { field.onChange(value); setSelectedClient(value); saveDraft(); }} value={field.value}>
+                <Select onValueChange={(value) => { field.onChange(value); setSelectedClient(value); }} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select client" />
@@ -216,7 +238,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
               <FormItem>
                 <FormLabel>Postcode</FormLabel>
                 <FormControl>
-                  <Input placeholder="Postcode" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                  <Input placeholder="Postcode" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -230,7 +252,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input placeholder="Phone number" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                  <Input placeholder="Phone number" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -244,7 +266,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                  <Input type="email" placeholder="email@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -262,7 +284,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
                 <FormItem>
                   <FormLabel>Ents Contact Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Entertainment contact name" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                    <Input placeholder="Entertainment contact name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -276,7 +298,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
                 <FormItem>
                   <FormLabel>Ents Contact Mobile</FormLabel>
                   <FormControl>
-                    <Input placeholder="Mobile number" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                    <Input placeholder="Mobile number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -290,7 +312,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
                 <FormItem>
                   <FormLabel>Ents Contact Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="ents@example.com" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                    <Input type="email" placeholder="ents@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -306,7 +328,7 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="Full address" className="min-h-[80px]" {...field} onBlur={() => { field.onBlur(); saveDraft(); }} />
+                <Textarea placeholder="Full address" className="min-h-[80px]" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -324,7 +346,6 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
                   placeholder="Add any additional notes..."
                   className="min-h-[100px]"
                   {...field}
-                  onBlur={() => { field.onBlur(); saveDraft(); }}
                 />
               </FormControl>
               <FormMessage />
@@ -344,12 +365,9 @@ export function LocationForm({ locationId, onSuccess, onCancel }: LocationFormPr
 
         <VenueManager locationId={locationId} />
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 justify-end">
           <Button type="submit" disabled={loading}>
             {loading ? "Saving..." : locationId ? "Update Location" : "Create Location"}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
-            Save Draft
           </Button>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
