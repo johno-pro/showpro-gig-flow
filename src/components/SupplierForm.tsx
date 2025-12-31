@@ -15,8 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import { useFormDraft } from "@/hooks/useFormDraft";
-import { DraftIndicator } from "@/components/ui/draft-indicator";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useEntityContacts } from "@/hooks/useEntityContacts";
 
@@ -62,10 +60,6 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
     },
   });
 
-  const { saveDraft, completeSave, draftStatus } = useFormDraft({
-    table: "suppliers",
-    form,
-  });
 
   const {
     contacts,
@@ -128,11 +122,27 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
         accounts_contact_email: values.accounts_contact_email?.trim() || null,
         accounts_contact_phone: values.accounts_contact_phone?.trim() || null,
         notes: values.notes?.trim() || null,
+        status: "active",
       };
 
-      const savedData = await completeSave(supplierData as any);
-      const supplierIdToUse = supplierId || (savedData as any)?.id;
-      
+      let supplierIdToUse = supplierId;
+
+      if (supplierId) {
+        const { error } = await supabase
+          .from("suppliers")
+          .update(supplierData)
+          .eq("id", supplierId);
+        if (error) throw error;
+      } else {
+        const { data: newSupplier, error } = await supabase
+          .from("suppliers")
+          .insert([supplierData])
+          .select()
+          .single();
+        if (error) throw error;
+        supplierIdToUse = newSupplier.id;
+      }
+
       if (supplierIdToUse && selectedContactIds.length > 0) {
         await saveEntityContacts(supplierIdToUse, selectedContactIds);
       }
@@ -316,7 +326,6 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
                   placeholder="Add any additional notes..."
                   className="min-h-[100px]"
                   {...field}
-                  onBlur={() => { field.onBlur(); saveDraft(); }}
                 />
               </FormControl>
               <FormMessage />
@@ -334,21 +343,15 @@ export function SupplierForm({ supplierId, onSuccess, onCancel }: SupplierFormPr
           />
         </div>
 
-        <div className="flex items-center justify-between">
-          <DraftIndicator status={draftStatus} />
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
-              Save Draft
+        <div className="flex gap-3 justify-end">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : supplierId ? "Update Supplier" : "Create Supplier"}
+          </Button>
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+              Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : supplierId ? "Update Supplier" : "Create Supplier"}
-            </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-                Cancel
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </form>
     </Form>

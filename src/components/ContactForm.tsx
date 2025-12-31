@@ -23,8 +23,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { sanitizeText } from "@/lib/sanitize";
-import { useFormDraft } from "@/hooks/useFormDraft";
-import { DraftIndicator } from "@/components/ui/draft-indicator";
 
 const contactFormSchema = z.object({
   name: z.string().trim().optional(),
@@ -71,10 +69,6 @@ export function ContactForm({ contactId, onSuccess, onCancel }: ContactFormProps
     },
   });
 
-  const { saveDraft, completeSave, draftStatus } = useFormDraft({
-    table: "contacts",
-    form,
-  });
 
   useEffect(() => {
     fetchClients();
@@ -199,9 +193,22 @@ export function ContactForm({ contactId, onSuccess, onCancel }: ContactFormProps
         department_id: values.department_id || null,
         supplier_id: values.supplier_id || null,
         notes: values.notes ? sanitizeText(values.notes, 1000) : null,
+        status: "active",
       };
 
-      await completeSave(contactData);
+      if (contactId) {
+        const { error } = await supabase
+          .from("contacts")
+          .update(contactData)
+          .eq("id", contactId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("contacts")
+          .insert([contactData]);
+        if (error) throw error;
+      }
+
       toast.success(contactId ? "Contact updated successfully" : "Contact created successfully");
       onSuccess?.();
     } catch (error: any) {
@@ -423,21 +430,15 @@ export function ContactForm({ contactId, onSuccess, onCancel }: ContactFormProps
           )}
         />
 
-        <div className="flex items-center justify-between">
-          <DraftIndicator status={draftStatus} />
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => saveDraft()} disabled={loading}>
-              Save Draft
+        <div className="flex gap-3 justify-end">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : contactId ? "Update Contact" : "Create Contact"}
+          </Button>
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+              Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : contactId ? "Update Contact" : "Create Contact"}
-            </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-                Cancel
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </form>
     </Form>
