@@ -1228,6 +1228,30 @@ export type Database = {
           },
         ]
       }
+      oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          state_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          state_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          state_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -1799,6 +1823,7 @@ export type Database = {
         Args: { p_buy_fee: number; p_sell_fee: number }
         Returns: number
       }
+      cleanup_expired_oauth_states: { Args: never; Returns: undefined }
       create_user_profile: {
         Args: { p_email: string; p_full_name?: string; p_user_id: string }
         Returns: undefined
