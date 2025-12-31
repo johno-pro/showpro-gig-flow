@@ -74,9 +74,7 @@ serve(async (req) => {
       );
     }
 
-    // Sanitize file name to prevent path traversal
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    console.log('Request data:', { artistId, artistEmail, fileName: sanitizedFileName, fileSize: file.size });
+    console.log('Request data:', { artistId, artistEmail, fileName: file.name, fileSize: file.size, mimeType: file.type });
 
     // Find artist by ID or email
     let artist;
@@ -115,8 +113,23 @@ serve(async (req) => {
 
     console.log('Found artist:', artist);
 
-    // Upload file to storage
-    const fileExt = file.name.split('.').pop();
+    // Derive file extension from validated MIME type (more secure than parsing filename)
+    const extensionMap: Record<string, string> = {
+      'application/pdf': 'pdf',
+      'image/jpeg': 'jpg',
+      'image/png': 'png'
+    };
+    const fileExt = extensionMap[file.type];
+    
+    if (!fileExt) {
+      console.error(`Unsupported MIME type: ${file.type}`);
+      return new Response(
+        JSON.stringify({ error: 'Unsupported file type' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Generate secure filename using artist ID and timestamp
     const fileName = `${artist.id}-${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
@@ -138,15 +151,11 @@ serve(async (req) => {
 
     console.log('File uploaded successfully:', filePath);
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('artist-invoices')
-      .getPublicUrl(filePath);
-
-    // Update artist record with invoice URL
+    // Store file path instead of public URL - signed URLs should be generated on demand
+    // This ensures access requires authentication and URLs expire
     const { error: updateError } = await supabase
       .from('artists')
-      .update({ invoice_upload_url: publicUrl })
+      .update({ invoice_upload_url: filePath })
       .eq('id', artist.id);
 
     if (updateError) {
@@ -157,7 +166,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Artist updated successfully');
+    console.log('Artist updated successfully with file path (not public URL)');
 
     return new Response(
       JSON.stringify({
@@ -170,7 +179,7 @@ serve(async (req) => {
         file: {
           name: file.name,
           size: file.size,
-          url: publicUrl,
+          path: filePath, // Return path instead of URL for security
         },
       }),
       {
