@@ -196,6 +196,9 @@ export default function Artists() {
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-3 flex-wrap">
                         <p className="font-medium">{artist.name}</p>
+                        {artist.act_code && (
+                          <code className="text-xs font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded">{artist.act_code}</code>
+                        )}
                         {artist.full_name && (
                           <span className="text-sm text-muted-foreground">({artist.full_name})</span>
                         )}
