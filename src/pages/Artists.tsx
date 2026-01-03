@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Users, Search, Zap, Copy, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BulkActCodeEditor } from "@/components/BulkActCodeEditor";
 
 export default function Artists() {
   const navigate = useNavigate();
@@ -86,10 +87,16 @@ export default function Artists() {
           <h1 className="text-3xl font-bold">Artists</h1>
           <p className="text-muted-foreground">Manage your entertainment artists and acts</p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/artists/new")}>
-          <Plus className="h-4 w-4" />
-          New Artist
-        </Button>
+        <div className="flex gap-2">
+          <BulkActCodeEditor 
+            artists={artists.map(a => ({ id: a.id, name: a.name, act_code: a.act_code }))} 
+            onSave={fetchArtists} 
+          />
+          <Button className="gap-2" onClick={() => navigate("/artists/new")}>
+            <Plus className="h-4 w-4" />
+            New Artist
+          </Button>
+        </div>
       </div>
 
       {showZapierInfo && (
