@@ -27,9 +27,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { BookingFormTabbed } from "@/components/BookingFormTabbed";
+import { CopyJobDialog } from "@/components/CopyJobDialog";
+import { QuickEditField } from "@/components/QuickEditField";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +42,9 @@ export default function BookingDetails() {
   const [editMode, setEditMode] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [invoiceForm, setInvoiceForm] = useState({
     amount_due: "",
     due_date: "",
@@ -51,8 +56,18 @@ export default function BookingDetails() {
   useEffect(() => {
     if (id) {
       fetchBooking();
+      fetchDropdownData();
     }
   }, [id]);
+
+  const fetchDropdownData = async () => {
+    const [artistsRes, clientsRes] = await Promise.all([
+      supabase.from("artists").select("id, name").eq("status", "active").order("name"),
+      supabase.from("clients").select("id, name").eq("status", "active").order("name"),
+    ]);
+    if (artistsRes.data) setArtists(artistsRes.data);
+    if (clientsRes.data) setClients(clientsRes.data);
+  };
 
   const fetchBooking = async () => {
     try {
@@ -224,6 +239,10 @@ export default function BookingDetails() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowCopyDialog(true)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy Job
+          </Button>
           <Button variant="outline" onClick={() => setEditMode(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -300,12 +319,21 @@ export default function BookingDetails() {
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Date</p>
-              <p className="mt-1">{new Date(booking.booking_date).toLocaleDateString("en-GB", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}</p>
+              <div className="mt-1">
+                <QuickEditField
+                  bookingId={id!}
+                  field="booking_date"
+                  value={booking.booking_date}
+                  displayValue={new Date(booking.booking_date).toLocaleDateString("en-GB", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                  type="date"
+                  onUpdate={fetchBooking}
+                />
+              </div>
             </div>
 
             {(booking.start_time || booking.end_time) && (
@@ -321,7 +349,17 @@ export default function BookingDetails() {
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Artist</p>
-              <p className="mt-1 font-medium">{booking.artists?.name || "Not assigned"}</p>
+              <div className="mt-1">
+                <QuickEditField
+                  bookingId={id!}
+                  field="artist_id"
+                  value={booking.artist_id}
+                  displayValue={booking.artists?.name || "Not assigned"}
+                  type="select"
+                  options={artists}
+                  onUpdate={fetchBooking}
+                />
+              </div>
               {booking.artists?.act_type && (
                 <p className="text-sm text-muted-foreground">{booking.artists.act_type}</p>
               )}
@@ -329,7 +367,17 @@ export default function BookingDetails() {
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Client</p>
-              <p className="mt-1">{booking.clients?.name}</p>
+              <div className="mt-1">
+                <QuickEditField
+                  bookingId={id!}
+                  field="client_id"
+                  value={booking.client_id}
+                  displayValue={booking.clients?.name || "Not assigned"}
+                  type="select"
+                  options={clients}
+                  onUpdate={fetchBooking}
+                />
+              </div>
             </div>
 
             {booking.locations && (
@@ -370,28 +418,47 @@ export default function BookingDetails() {
 
             <Separator />
 
-            {booking.artist_fee && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Artist Fee</p>
-                <p className="mt-1 text-lg font-semibold">
-                  £{parseFloat(booking.artist_fee).toFixed(2)}
-                </p>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Buy Fee</p>
+              <div className="mt-1">
+                <QuickEditField
+                  bookingId={id!}
+                  field="buy_fee"
+                  value={booking.buy_fee}
+                  displayValue={booking.buy_fee ? `£${parseFloat(booking.buy_fee).toFixed(2)}` : "Not set"}
+                  type="currency"
+                  onUpdate={fetchBooking}
+                />
               </div>
-            )}
+            </div>
 
-            {booking.client_fee && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Client Fee</p>
-                <p className="mt-1 text-lg font-semibold">
-                  £{parseFloat(booking.client_fee).toFixed(2)}
-                </p>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Sell Fee</p>
+              <div className="mt-1">
+                <QuickEditField
+                  bookingId={id!}
+                  field="sell_fee"
+                  value={booking.sell_fee}
+                  displayValue={booking.sell_fee ? `£${parseFloat(booking.sell_fee).toFixed(2)}` : "Not set"}
+                  type="currency"
+                  onUpdate={fetchBooking}
+                />
               </div>
-            )}
+            </div>
 
-            {booking.deposit_amount && (
+            {booking.deposit_amount !== null && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Deposit Amount</p>
-                <p className="mt-1">£{parseFloat(booking.deposit_amount).toFixed(2)}</p>
+                <div className="mt-1">
+                  <QuickEditField
+                    bookingId={id!}
+                    field="deposit_amount"
+                    value={booking.deposit_amount}
+                    displayValue={booking.deposit_amount ? `£${parseFloat(booking.deposit_amount).toFixed(2)}` : "Not set"}
+                    type="currency"
+                    onUpdate={fetchBooking}
+                  />
+                </div>
               </div>
             )}
 
@@ -533,6 +600,13 @@ export default function BookingDetails() {
           </CardContent>
         </Card>
       )}
+
+      <CopyJobDialog
+        booking={booking}
+        open={showCopyDialog}
+        onOpenChange={setShowCopyDialog}
+        onSuccess={(newId) => navigate(`/bookings/${newId}`)}
+      />
     </div>
   );
 }
