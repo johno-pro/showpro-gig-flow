@@ -58,6 +58,16 @@ export function BookingFormTabbed({
   const [loadingBooking, setLoadingBooking] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingRef = useRef(false);
+  const [defaultCommission, setDefaultCommission] = useState<number>(15);
+  const [autoCalcEnabled, setAutoCalcEnabled] = useState<boolean>(true);
+
+  // Load default commission from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('default_commission_percent');
+    if (saved) {
+      setDefaultCommission(parseFloat(saved));
+    }
+  }, []);
 
   // Update currentBookingId if bookingId prop changes
   useEffect(() => {
@@ -70,6 +80,20 @@ export function BookingFormTabbed({
     const sellRate = form.getValues('sell_rate') || 150;
     const buyRate = sellRate * (1 - commissionPercent / 100);
     form.setValue('buy_rate', Math.round(buyRate * 100) / 100);
+    setDefaultCommission(commissionPercent);
+  };
+
+  const saveDefaultCommission = () => {
+    localStorage.setItem('default_commission_percent', defaultCommission.toString());
+    toast.success(`Default commission saved: ${defaultCommission}%`);
+  };
+
+  const handleSellRateChange = (value: number | undefined) => {
+    form.setValue('sell_rate', value);
+    if (autoCalcEnabled && value) {
+      const buyRate = value * (1 - defaultCommission / 100);
+      form.setValue('buy_rate', Math.round(buyRate * 100) / 100);
+    }
   };
 
   // Helper to check if artist is a reindeer act
@@ -565,7 +589,7 @@ export function BookingFormTabbed({
                         value={field.value ?? ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          field.onChange(val === '' ? undefined : parseFloat(val));
+                          handleSellRateChange(val === '' ? undefined : parseFloat(val));
                         }}
                       />
                     </FormControl>
@@ -576,15 +600,44 @@ export function BookingFormTabbed({
             </div>
 
             <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-medium text-muted-foreground mr-2">Default Commission:</div>
+                <Input
+                  type="number"
+                  step="0.5"
+                  className="w-20"
+                  value={defaultCommission}
+                  onChange={(e) => setDefaultCommission(parseFloat(e.target.value) || 15)}
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={saveDefaultCommission}
+                >
+                  Save Default
+                </Button>
+                <label className="flex items-center gap-2 ml-auto cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoCalcEnabled}
+                    onChange={(e) => setAutoCalcEnabled(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-muted-foreground">Auto-calculate buy rate</span>
+                </label>
+              </div>
+              
               <div className="flex flex-wrap gap-2">
-                <div className="text-sm font-medium text-muted-foreground mr-2 self-center">Quick Commission:</div>
+                <div className="text-sm font-medium text-muted-foreground mr-2 self-center">Quick Apply:</div>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
                   onClick={() => applyCommissionPreset(15)}
                 >
-                  15% Commission
+                  15%
                 </Button>
                 <Button
                   type="button"
@@ -592,7 +645,16 @@ export function BookingFormTabbed({
                   size="sm"
                   onClick={() => applyCommissionPreset(7.5)}
                 >
-                  7.5% Commission
+                  7.5%
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => applyCommissionPreset(defaultCommission)}
+                  className="border-2 border-primary"
+                >
+                  {defaultCommission}% (Default)
                 </Button>
               </div>
             </div>
