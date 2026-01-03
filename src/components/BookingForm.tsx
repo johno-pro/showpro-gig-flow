@@ -189,14 +189,14 @@ export function BookingForm({ defaultValues, onSuccess }: { defaultValues?: any;
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client (optional)</FormLabel>
-                  <Select onValueChange={field.onChange}>
+                <Select onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select client" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {clients?.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
