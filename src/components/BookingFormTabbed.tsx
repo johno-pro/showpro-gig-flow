@@ -28,8 +28,8 @@ const bookingSchema = z.object({
   end_date: z.date().optional(),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
-  total_rate: z.number().min(0).optional(),
-  split_ratio: z.number().min(0.5).max(0.95).default(0.85),
+  buy_rate: z.number().min(0).optional(),
+  sell_rate: z.number().min(0).optional(),
   vat_rate_client: z.number().min(0).max(100).default(20),
   vat_rate_artist: z.number().min(0).max(100).default(20),
   notes: z.string().optional(),
@@ -52,22 +52,12 @@ export function BookingFormTabbed({
   const [clients, setClients] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
-  const [preview, setPreview] = useState({ artist: 0, agency: 0 });
+  const [preview, setPreview] = useState({ artist: 0, agency: 0, artistVat: 0, agencyVat: 0, artistTotal: 0, agencyTotal: 0 });
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
   const [loadingBooking, setLoadingBooking] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingRef = useRef(false);
-  const [calculationMode, setCalculationMode] = useState<'split' | 'commission'>('split');
-  const [defaultSplit, setDefaultSplit] = useState<number>(0.85);
-
-  // Load default split from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('default_split_ratio');
-    if (saved) {
-      setDefaultSplit(parseFloat(saved));
-    }
-  }, []);
 
   // Update currentBookingId if bookingId prop changes
   useEffect(() => {
@@ -76,15 +66,10 @@ export function BookingFormTabbed({
     }
   }, [bookingId]);
 
-  const saveDefaultSplit = () => {
-    const currentSplit = form.getValues('split_ratio') || 0.85;
-    localStorage.setItem('default_split_ratio', currentSplit.toString());
-    setDefaultSplit(currentSplit);
-    toast.success(`Default split saved: ${Math.round(currentSplit * 100)}%`);
-  };
-
-  const applyPreset = (ratio: number) => {
-    form.setValue('split_ratio', ratio);
+  const applyCommissionPreset = (commissionPercent: number) => {
+    const sellRate = form.getValues('sell_rate') || 150;
+    const buyRate = sellRate * (1 - commissionPercent / 100);
+    form.setValue('buy_rate', Math.round(buyRate * 100) / 100);
   };
 
   // Helper to check if artist is a reindeer act
@@ -110,8 +95,8 @@ export function BookingFormTabbed({
       end_date: new Date(),
       start_time: "19:30",
       end_time: "23:30",
-      total_rate: 150,
-      split_ratio: 0.85,
+      buy_rate: 127.50,
+      sell_rate: 150,
       vat_rate_client: 20,
       vat_rate_artist: 20,
       status: 'draft',
@@ -176,8 +161,8 @@ export function BookingFormTabbed({
         end_date: endDateTime,
         start_time: data.start_time || '19:00',
         end_time: data.end_time || '23:30',
-        total_rate: data.sell_fee || 150,
-        split_ratio: data.buy_fee && data.sell_fee ? data.buy_fee / data.sell_fee : 0.85,
+        buy_rate: data.buy_fee || 127.50,
+        sell_rate: data.sell_fee || 150,
         vat_rate_client: data.vat_rate || 20,
         vat_rate_artist: data.vat_rate || 20,
         notes: data.notes || '',
@@ -204,14 +189,14 @@ export function BookingFormTabbed({
     setLocations(data || []);
   };
 
-  // Calculate split preview with VAT
+  // Calculate preview with VAT
   useEffect(() => {
     const subscription = form.watch((value) => {
-      const { split_ratio = 0.85, total_rate = 0, vat_rate_client = 20, vat_rate_artist = 20 } = value;
-      const artistNet = total_rate * split_ratio;
-      const agencyNet = total_rate * (1 - split_ratio);
-      const artistVat = artistNet * (vat_rate_artist / 100);
-      const agencyVat = agencyNet * (vat_rate_client / 100);
+      const { buy_rate = 0, sell_rate = 0, vat_rate_client = 20, vat_rate_artist = 20 } = value;
+      const artistNet = buy_rate || 0;
+      const agencyNet = (sell_rate || 0) - (buy_rate || 0);
+      const artistVat = artistNet * ((vat_rate_artist as number) / 100);
+      const agencyVat = (sell_rate || 0) * ((vat_rate_client as number) / 100);
       
       setPreview({ 
         artist: artistNet,
@@ -219,8 +204,8 @@ export function BookingFormTabbed({
         artistVat,
         agencyVat,
         artistTotal: artistNet + artistVat,
-        agencyTotal: agencyNet + agencyVat
-      } as any);
+        agencyTotal: (sell_rate || 0) + agencyVat
+      });
     });
     return () => subscription.unsubscribe();
   }, [form.watch]);
@@ -254,8 +239,8 @@ export function BookingFormTabbed({
     if (!values.client_id || saving) return;
 
     setSaving(true);
-    const artistNet = values.total_rate ? values.total_rate * (values.split_ratio || 0.85) : 0;
-    const clientNet = values.total_rate || 0;
+    const artistNet = values.buy_rate || 0;
+    const clientNet = values.sell_rate || 0;
     
     const draftData: any = {
       artist_id: values.artist_id || null,
@@ -297,8 +282,8 @@ export function BookingFormTabbed({
   const onSubmit = async (data: BookingFormData) => {
     setSaving(true);
     try {
-      const artistNet = data.total_rate ? data.total_rate * (data.split_ratio || 0.85) : 0;
-      const clientNet = data.total_rate || 0;
+      const artistNet = data.buy_rate || 0;
+      const clientNet = data.sell_rate || 0;
       
       const bookingData = {
         artist_id: data.artist_id || null,
@@ -540,25 +525,47 @@ export function BookingFormTabbed({
           </TabsContent>
 
           <TabsContent value="money" className="space-y-4">
-            <FormField
-              control={form.control}
-              name="total_rate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total Rate (£)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="150.00" 
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="buy_rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Buy Rate (£) - Artist</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="127.50" 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="sell_rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sell Rate (£) - Client</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="150.00" 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
@@ -567,7 +574,7 @@ export function BookingFormTabbed({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  onClick={() => applyPreset(0.85)}
+                  onClick={() => applyCommissionPreset(15)}
                 >
                   15% Commission
                 </Button>
@@ -575,180 +582,11 @@ export function BookingFormTabbed({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  onClick={() => applyPreset(0.925)}
+                  onClick={() => applyCommissionPreset(7.5)}
                 >
                   7.5% Commission
                 </Button>
-                {defaultSplit !== 0.85 && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => applyPreset(defaultSplit)}
-                    className="border-2 border-primary"
-                  >
-                    Default ({Math.round((1 - defaultSplit) * 100)}% Comm.)
-                  </Button>
-                )}
               </div>
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={calculationMode === 'split' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCalculationMode('split')}
-                >
-                  Split Ratio
-                </Button>
-                <Button
-                  type="button"
-                  variant={calculationMode === 'commission' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCalculationMode('commission')}
-                >
-                  Commission %
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={saveDefaultSplit}
-                  className="ml-auto"
-                >
-                  Save as Default
-                </Button>
-              </div>
-            </div>
-
-            {calculationMode === 'commission' ? (
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <div className="text-sm font-medium mb-2">Commission Calculator</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Commission % (Agency)</FormLabel>
-                    <Input 
-                      type="number" 
-                      step="0.1" 
-                      placeholder="15.0"
-                      onChange={(e) => {
-                        const commission = parseFloat(e.target.value) || 15;
-                        const splitRatio = (100 - commission) / 100;
-                        form.setValue('split_ratio', Math.min(Math.max(splitRatio, 0.5), 0.95));
-                      }}
-                      defaultValue="15"
-                    />
-                  </FormItem>
-                  <FormItem>
-                    <FormLabel>Artist % (Calculated)</FormLabel>
-                    <Input 
-                      type="number" 
-                      value={(form.watch('split_ratio') * 100).toFixed(1)}
-                      disabled
-                      className="bg-muted"
-                    />
-                  </FormItem>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="split_ratio"
-                render={({ field }) => {
-                  const totalRate = form.watch('total_rate') || 0;
-                  const artistAmount = totalRate * (field.value || 0.85);
-                  
-                  return (
-                    <FormItem>
-                      <FormLabel>Artist Amount (£)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          placeholder="0.00"
-                          value={artistAmount.toFixed(2)}
-                          onChange={(e) => {
-                            const newArtistAmount = parseFloat(e.target.value) || 0;
-                            const newRatio = totalRate > 0 ? newArtistAmount / totalRate : 0.85;
-                            field.onChange(Math.min(Math.max(newRatio, 0.5), 0.95));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormField
-                control={form.control}
-                name="split_ratio"
-                render={({ field }) => {
-                  const percentage = (field.value || 0.85) * 100;
-                  
-                  return (
-                    <FormItem>
-                      <FormLabel>Artist % (Direct)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.1" 
-                          placeholder="85.0"
-                          value={percentage.toFixed(1)}
-                          onChange={(e) => {
-                            const newPercentage = parseFloat(e.target.value) || 85;
-                            field.onChange(Math.min(Math.max(newPercentage / 100, 0.5), 0.95));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="split_ratio"
-                render={({ field }) => {
-                  const totalRate = form.watch('total_rate') || 0;
-                  const agencyAmount = totalRate * (1 - (field.value || 0.85));
-                  
-                  return (
-                    <FormItem>
-                      <FormLabel>Agency Amount (£)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          placeholder="0.00"
-                          value={agencyAmount.toFixed(2)}
-                          onChange={(e) => {
-                            const newAgencyAmount = parseFloat(e.target.value) || 0;
-                            const newRatio = totalRate > 0 ? 1 - (newAgencyAmount / totalRate) : 0.85;
-                            field.onChange(Math.min(Math.max(newRatio, 0.5), 0.95));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormItem>
-                <FormLabel>Agency % (Calculated)</FormLabel>
-                <Input 
-                  type="number" 
-                  value={((1 - (form.watch('split_ratio') || 0.85)) * 100).toFixed(1)}
-                  disabled
-                  className="bg-muted"
-                />
-              </FormItem>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -763,7 +601,7 @@ export function BookingFormTabbed({
                         type="number" 
                         step="0.1" 
                         placeholder="20.0"
-                        {...field}
+                        value={field.value || ''}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 20)}
                       />
                     </FormControl>
@@ -783,7 +621,7 @@ export function BookingFormTabbed({
                         type="number" 
                         step="0.1" 
                         placeholder="20.0"
-                        {...field}
+                        value={field.value || ''}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 20)}
                       />
                     </FormControl>
@@ -795,41 +633,48 @@ export function BookingFormTabbed({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Fee Split Summary (with VAT)</CardTitle>
+                <CardTitle className="text-sm">Fee Summary (with VAT)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Artist Net:</span>
-                  <span>{formatGBP((preview as any).artist)}</span>
+                  <span className="text-muted-foreground">Buy Rate (Artist Net):</span>
+                  <span>{formatGBP(preview.artist)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Artist VAT ({form.watch('vat_rate_artist')}%):</span>
-                  <span>{formatGBP((preview as any).artistVat || 0)}</span>
+                  <span>{formatGBP(preview.artistVat)}</span>
                 </div>
                 <div className="flex justify-between font-semibold">
-                  <span>Artist Total:</span>
-                  <span>{formatGBP((preview as any).artistTotal || 0)}</span>
+                  <span>Artist Total (inc VAT):</span>
+                  <span>{formatGBP(preview.artistTotal)}</span>
                 </div>
                 
                 <div className="border-t pt-2 mt-2" />
                 
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Agency Net:</span>
-                  <span>{formatGBP((preview as any).agency)}</span>
+                  <span className="text-muted-foreground">Sell Rate (Client Net):</span>
+                  <span>{formatGBP(form.watch('sell_rate') || 0)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Agency VAT ({form.watch('vat_rate_client')}%):</span>
-                  <span>{formatGBP((preview as any).agencyVat || 0)}</span>
+                  <span>Client VAT ({form.watch('vat_rate_client')}%):</span>
+                  <span>{formatGBP(preview.agencyVat)}</span>
                 </div>
                 <div className="flex justify-between font-semibold">
-                  <span>Agency Total:</span>
-                  <span>{formatGBP((preview as any).agencyTotal || 0)}</span>
+                  <span>Client Total (inc VAT):</span>
+                  <span>{formatGBP(preview.agencyTotal)}</span>
                 </div>
                 
-                <div className="pt-2 border-t text-xs text-muted-foreground">
-                  {Math.round((form.watch('split_ratio') || 0.85) * 100)}% / {Math.round((1 - (form.watch('split_ratio') || 0.85)) * 100)}% split
-                  • Commission: {Math.round((1 - (form.watch('split_ratio') || 0.85)) * 100)}%
+                <div className="border-t pt-2 mt-2" />
+                
+                <div className="flex justify-between text-sm font-semibold text-primary">
+                  <span>Agency Margin:</span>
+                  <span>{formatGBP(preview.agency)}</span>
                 </div>
+                {(form.watch('sell_rate') || 0) > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Commission: {(((form.watch('sell_rate') || 0) - (form.watch('buy_rate') || 0)) / (form.watch('sell_rate') || 1) * 100).toFixed(1)}%
+                  </div>
+                )}
               </CardContent>
             </Card>
 
