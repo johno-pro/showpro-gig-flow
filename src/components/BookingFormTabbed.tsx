@@ -537,8 +537,12 @@ export function BookingFormTabbed({
                         type="number" 
                         step="0.01" 
                         placeholder="127.50" 
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === '' ? undefined : parseFloat(val));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -557,8 +561,12 @@ export function BookingFormTabbed({
                         type="number" 
                         step="0.01" 
                         placeholder="150.00" 
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === '' ? undefined : parseFloat(val));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
