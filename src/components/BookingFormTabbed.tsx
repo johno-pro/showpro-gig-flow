@@ -60,6 +60,7 @@ export function BookingFormTabbed({
   const isLoadingRef = useRef(false);
   const [defaultCommission, setDefaultCommission] = useState<number>(15);
   const [autoCalcEnabled, setAutoCalcEnabled] = useState<boolean>(true);
+  const [calcDirection, setCalcDirection] = useState<'sellToBuy' | 'buyToSell'>('sellToBuy');
 
   // Load default commission from localStorage
   useEffect(() => {
@@ -77,9 +78,15 @@ export function BookingFormTabbed({
   }, [bookingId]);
 
   const applyCommissionPreset = (commissionPercent: number) => {
-    const sellRate = form.getValues('sell_rate') || 150;
-    const buyRate = sellRate * (1 - commissionPercent / 100);
-    form.setValue('buy_rate', Math.round(buyRate * 100) / 100);
+    if (calcDirection === 'sellToBuy') {
+      const sellRate = form.getValues('sell_rate') || 150;
+      const buyRate = sellRate * (1 - commissionPercent / 100);
+      form.setValue('buy_rate', Math.round(buyRate * 100) / 100);
+    } else {
+      const buyRate = form.getValues('buy_rate') || 127.50;
+      const sellRate = buyRate / (1 - commissionPercent / 100);
+      form.setValue('sell_rate', Math.round(sellRate * 100) / 100);
+    }
     setDefaultCommission(commissionPercent);
   };
 
@@ -90,10 +97,28 @@ export function BookingFormTabbed({
 
   const handleSellRateChange = (value: number | undefined) => {
     form.setValue('sell_rate', value);
-    if (autoCalcEnabled && value) {
+    if (autoCalcEnabled && calcDirection === 'sellToBuy' && value) {
       const buyRate = value * (1 - defaultCommission / 100);
       form.setValue('buy_rate', Math.round(buyRate * 100) / 100);
     }
+  };
+
+  const handleBuyRateChange = (value: number | undefined) => {
+    form.setValue('buy_rate', value);
+    if (autoCalcEnabled && calcDirection === 'buyToSell' && value) {
+      const sellRate = value / (1 - defaultCommission / 100);
+      form.setValue('sell_rate', Math.round(sellRate * 100) / 100);
+    }
+  };
+
+  // Calculate live commission percentage
+  const getLiveCommission = () => {
+    const buyRate = form.watch('buy_rate') || 0;
+    const sellRate = form.watch('sell_rate') || 0;
+    if (sellRate > 0) {
+      return ((sellRate - buyRate) / sellRate * 100);
+    }
+    return 0;
   };
 
   // Helper to check if artist is a reindeer act
@@ -565,7 +590,7 @@ export function BookingFormTabbed({
                         value={field.value ?? ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          field.onChange(val === '' ? undefined : parseFloat(val));
+                          handleBuyRateChange(val === '' ? undefined : parseFloat(val));
                         }}
                       />
                     </FormControl>
@@ -599,6 +624,21 @@ export function BookingFormTabbed({
               />
             </div>
 
+            {/* Live Commission Display */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Live Commission:</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {getLiveCommission().toFixed(1)}%
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Margin: {formatGBP((form.watch('sell_rate') || 0) - (form.watch('buy_rate') || 0))}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="text-sm font-medium text-muted-foreground mr-2">Default Commission:</div>
@@ -618,15 +658,39 @@ export function BookingFormTabbed({
                 >
                   Save Default
                 </Button>
-                <label className="flex items-center gap-2 ml-auto cursor-pointer">
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={autoCalcEnabled}
                     onChange={(e) => setAutoCalcEnabled(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-sm text-muted-foreground">Auto-calculate buy rate</span>
+                  <span className="text-sm text-muted-foreground">Auto-calculate</span>
                 </label>
+                
+                {autoCalcEnabled && (
+                  <div className="flex gap-1 ml-2">
+                    <Button
+                      type="button"
+                      variant={calcDirection === 'sellToBuy' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCalcDirection('sellToBuy')}
+                    >
+                      Sell → Buy
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={calcDirection === 'buyToSell' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCalcDirection('buyToSell')}
+                    >
+                      Buy → Sell
+                    </Button>
+                  </div>
+                )}
               </div>
               
               <div className="flex flex-wrap gap-2">
