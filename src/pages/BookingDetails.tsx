@@ -45,6 +45,8 @@ export default function BookingDetails() {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+  const [venues, setVenues] = useState<{ id: string; name: string }[]>([]);
   const [invoiceForm, setInvoiceForm] = useState({
     amount_due: "",
     due_date: "",
@@ -61,12 +63,16 @@ export default function BookingDetails() {
   }, [id]);
 
   const fetchDropdownData = async () => {
-    const [artistsRes, clientsRes] = await Promise.all([
+    const [artistsRes, clientsRes, locationsRes, venuesRes] = await Promise.all([
       supabase.from("artists").select("id, name").eq("status", "active").order("name"),
       supabase.from("clients").select("id, name").eq("status", "active").order("name"),
+      supabase.from("locations").select("id, name").eq("status", "active").order("name"),
+      supabase.from("venues").select("id, name").eq("status", "active").order("name"),
     ]);
     if (artistsRes.data) setArtists(artistsRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
+    if (locationsRes.data) setLocations(locationsRes.data);
+    if (venuesRes.data) setVenues(venuesRes.data);
   };
 
   const fetchBooking = async () => {
@@ -234,7 +240,14 @@ export default function BookingDetails() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Booking Details</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">Booking Details</h1>
+              {booking?.job_code && (
+                <code className="text-lg font-mono bg-primary/10 text-primary px-2 py-1 rounded">
+                  {booking.job_code}
+                </code>
+              )}
+            </div>
             <p className="text-muted-foreground">View and manage booking information</p>
           </div>
         </div>
@@ -383,14 +396,34 @@ export default function BookingDetails() {
             {booking.locations && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Location</p>
-                <p className="mt-1">{booking.locations.name}</p>
+                <div className="mt-1">
+                  <QuickEditField
+                    bookingId={id!}
+                    field="location_id"
+                    value={booking.location_id}
+                    displayValue={booking.locations?.name || "Not assigned"}
+                    type="select"
+                    options={locations}
+                    onUpdate={fetchBooking}
+                  />
+                </div>
               </div>
             )}
 
             {booking.venues && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Venue</p>
-                <p className="mt-1">{booking.venues.name}</p>
+                <div className="mt-1">
+                  <QuickEditField
+                    bookingId={id!}
+                    field="venue_id"
+                    value={booking.venue_id}
+                    displayValue={booking.venues?.name || "Not assigned"}
+                    type="select"
+                    options={venues}
+                    onUpdate={fetchBooking}
+                  />
+                </div>
               </div>
             )}
           </CardContent>

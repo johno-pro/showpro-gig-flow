@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalendarIcon, Mail, Search, X } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Mail, Search, X, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { EmailDialog } from "@/components/EmailDialog";
+import { BulkCopyJobsDialog } from "@/components/BulkCopyJobsDialog";
 import { cn } from "@/lib/utils";
 
 export default function Bookings() {
@@ -20,6 +21,7 @@ export default function Bookings() {
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [bulkCopyOpen, setBulkCopyOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -120,10 +122,16 @@ export default function Bookings() {
           <h1 className="text-3xl font-bold">Bookings</h1>
           <p className="text-muted-foreground">Manage all your entertainment bookings</p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/bookings/new")}>
-          <Plus className="h-4 w-4" />
-          New Booking
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setBulkCopyOpen(true)}>
+            <Copy className="h-4 w-4" />
+            Bulk Copy
+          </Button>
+          <Button className="gap-2" onClick={() => navigate("/bookings/new")}>
+            <Plus className="h-4 w-4" />
+            New Booking
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -307,6 +315,13 @@ export default function Bookings() {
           booking={selectedBooking}
         />
       )}
+
+      <BulkCopyJobsDialog
+        bookings={filteredBookings}
+        open={bulkCopyOpen}
+        onOpenChange={setBulkCopyOpen}
+        onSuccess={fetchBookings}
+      />
     </div>
   );
 }
