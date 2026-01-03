@@ -1,14 +1,18 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar, Mail, Search, X } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Mail, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmailDialog } from "@/components/EmailDialog";
+import { cn } from "@/lib/utils";
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -18,12 +22,38 @@ export default function Bookings() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter !== "all" || dateFrom || dateTo;
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
       // Status filter
       if (statusFilter !== "all" && booking.status !== statusFilter) {
         return false;
+      }
+      
+      // Date range filter
+      if (dateFrom || dateTo) {
+        const bookingDate = new Date(booking.booking_date);
+        if (dateFrom && bookingDate < dateFrom) {
+          return false;
+        }
+        if (dateTo) {
+          const endOfDay = new Date(dateTo);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (bookingDate > endOfDay) {
+            return false;
+          }
+        }
       }
       
       // Search filter
@@ -46,7 +76,7 @@ export default function Bookings() {
       
       return true;
     });
-  }, [bookings, searchQuery, statusFilter]);
+  }, [bookings, searchQuery, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchBookings();
@@ -103,14 +133,14 @@ export default function Bookings() {
               Bookings ({filteredBookings.length}
               {filteredBookings.length !== bookings.length && ` of ${bookings.length}`})
             </CardTitle>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search bookings..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-full sm:w-64"
+                  className="pl-9 w-full sm:w-56"
                 />
                 {searchQuery && (
                   <Button
@@ -124,8 +154,8 @@ export default function Bookings() {
                 )}
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Filter by status" />
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -135,13 +165,65 @@ export default function Bookings() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-32 justify-start text-left font-normal",
+                      !dateFrom && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFrom ? format(dateFrom, "dd/MM/yy") : "From"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={setDateFrom}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-32 justify-start text-left font-normal",
+                      !dateTo && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateTo ? format(dateTo, "dd/MM/yy") : "To"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={setDateTo}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="gap-1">
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {bookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
+              <CalendarIcon className="mb-4 h-12 w-12 text-muted-foreground" />
               <h3 className="mb-2 text-lg font-semibold">No bookings yet</h3>
               <p className="mb-4 text-muted-foreground">Get started by creating your first booking</p>
               <Button onClick={() => navigate("/bookings/new")}>
@@ -154,7 +236,7 @@ export default function Bookings() {
               <Search className="mb-4 h-12 w-12 text-muted-foreground" />
               <h3 className="mb-2 text-lg font-semibold">No matching bookings</h3>
               <p className="mb-4 text-muted-foreground">Try adjusting your search or filter criteria</p>
-              <Button variant="outline" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}>
+              <Button variant="outline" onClick={clearAllFilters}>
                 Clear Filters
               </Button>
             </div>
