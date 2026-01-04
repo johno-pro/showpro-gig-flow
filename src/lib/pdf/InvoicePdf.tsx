@@ -5,39 +5,19 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
 } from "@react-pdf/renderer";
 import type { InvoicePdfModel } from "./types";
-
-// Register Inter font from Google Fonts CDN
-Font.register({
-  family: "Inter",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
-      fontWeight: 400,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiJ-Ek-_EeA.woff2",
-      fontWeight: 600,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hiJ-Ek-_EeA.woff2",
-      fontWeight: 700,
-    },
-  ],
-});
 
 // A4: 595.28 x 841.89 points
 // 24mm top ≈ 68pt, 18mm sides ≈ 51pt, 20mm bottom ≈ 57pt
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontSize: 9,
     paddingTop: 68,
     paddingBottom: 57,
     paddingHorizontal: 51,
-    color: "#1a1a1a",
+    color: "#000000",
   },
   header: {
     flexDirection: "row",
@@ -52,18 +32,19 @@ const styles = StyleSheet.create({
   },
   companyName: {
     fontSize: 16,
-    fontWeight: 700,
+    fontFamily: "Helvetica-Bold",
     letterSpacing: 1,
     marginBottom: 4,
+    color: "#000000",
   },
   companyInfo: {
     fontSize: 8,
-    color: "#666",
+    color: "#000000",
   },
   invoiceTitle: {
     fontSize: 28,
-    fontWeight: 700,
-    color: "#1a1a1a",
+    fontFamily: "Helvetica-Bold",
+    color: "#000000",
     marginBottom: 8,
   },
   invoiceMetaRow: {
@@ -73,21 +54,22 @@ const styles = StyleSheet.create({
   },
   invoiceMetaLabel: {
     fontSize: 8,
-    color: "#666",
+    color: "#000000",
     width: 70,
     textAlign: "right",
   },
   invoiceMetaValue: {
     fontSize: 9,
-    fontWeight: 600,
+    fontFamily: "Helvetica-Bold",
     width: 100,
     textAlign: "right",
+    color: "#000000",
   },
   reissueBadge: {
     backgroundColor: "#fef3c7",
-    color: "#92400e",
+    color: "#000000",
     fontSize: 7,
-    fontWeight: 600,
+    fontFamily: "Helvetica-Bold",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 3,
@@ -95,7 +77,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#e5e5e5",
+    backgroundColor: "#cccccc",
     marginVertical: 16,
   },
   twoColumn: {
@@ -108,24 +90,25 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 7,
-    color: "#888",
+    color: "#000000",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   cardTitle: {
     fontSize: 11,
-    fontWeight: 600,
+    fontFamily: "Helvetica-Bold",
     marginBottom: 4,
+    color: "#000000",
   },
   cardText: {
     fontSize: 9,
-    color: "#444",
+    color: "#000000",
     lineHeight: 1.4,
   },
   summaryRow: {
     flexDirection: "row",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f0f0f0",
     padding: 10,
     borderRadius: 4,
     marginBottom: 16,
@@ -136,14 +119,15 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 7,
-    color: "#888",
+    color: "#000000",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   summaryValue: {
     fontSize: 9,
-    fontWeight: 600,
+    fontFamily: "Helvetica-Bold",
+    color: "#000000",
   },
   table: {
     marginBottom: 16,
@@ -151,7 +135,7 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e5e5",
+    borderBottomColor: "#cccccc",
     paddingBottom: 6,
     marginBottom: 6,
   },
@@ -159,7 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: "#dddddd",
   },
   colRef: { width: 60 },
   colDate: { width: 70 },
@@ -169,14 +153,14 @@ const styles = StyleSheet.create({
   colGross: { width: 65, textAlign: "right" },
   tableHeaderText: {
     fontSize: 7,
-    fontWeight: 600,
-    color: "#666",
+    fontFamily: "Helvetica-Bold",
+    color: "#000000",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   tableCellText: {
     fontSize: 9,
-    color: "#333",
+    color: "#000000",
   },
   totalsContainer: {
     flexDirection: "row",
@@ -196,36 +180,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
+    borderTopColor: "#000000",
     marginTop: 4,
   },
   totalsLabel: {
     fontSize: 9,
-    color: "#666",
+    color: "#000000",
   },
   totalsValue: {
     fontSize: 9,
     textAlign: "right",
+    color: "#000000",
   },
   totalsLabelBold: {
     fontSize: 10,
-    fontWeight: 700,
+    fontFamily: "Helvetica-Bold",
+    color: "#000000",
   },
   totalsValueBold: {
     fontSize: 10,
-    fontWeight: 700,
+    fontFamily: "Helvetica-Bold",
     textAlign: "right",
+    color: "#000000",
   },
   paymentBox: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#f0f0f0",
     padding: 14,
     borderRadius: 4,
     marginBottom: 24,
   },
   paymentTitle: {
     fontSize: 9,
-    fontWeight: 600,
+    fontFamily: "Helvetica-Bold",
     marginBottom: 8,
+    color: "#000000",
   },
   paymentRow: {
     flexDirection: "row",
@@ -233,12 +221,13 @@ const styles = StyleSheet.create({
   },
   paymentLabel: {
     fontSize: 8,
-    color: "#666",
+    color: "#000000",
     width: 90,
   },
   paymentValue: {
     fontSize: 9,
-    fontWeight: 600,
+    fontFamily: "Helvetica-Bold",
+    color: "#000000",
   },
   footer: {
     position: "absolute",
@@ -246,12 +235,12 @@ const styles = StyleSheet.create({
     left: 51,
     right: 51,
     borderTopWidth: 1,
-    borderTopColor: "#e5e5e5",
+    borderTopColor: "#cccccc",
     paddingTop: 10,
   },
   footerText: {
     fontSize: 7,
-    color: "#888",
+    color: "#000000",
     textAlign: "center",
   },
 });
