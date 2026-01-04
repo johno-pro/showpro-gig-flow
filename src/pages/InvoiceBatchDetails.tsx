@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, FileText, Send } from "lucide-react";
+import { ArrowLeft, Trash2, FileText, Send, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState } from "react";
+import { downloadInvoicePdf, type InvoicePdfModel, type InvoiceLineItem } from "@/lib/pdf";
 
 export default function InvoiceBatchDetails() {
   const { id } = useParams();
@@ -126,6 +128,8 @@ export default function InvoiceBatchDetails() {
     },
   });
 
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
   if (isLoading) return <div>Loading...</div>;
   if (!batch) return <div>Invoice batch not found</div>;
 
@@ -133,6 +137,87 @@ export default function InvoiceBatchDetails() {
     const booking = bb.bookings as any;
     return sum + (booking?.sell_fee || 0);
   }, 0) || 0;
+
+  const handlePreviewPdf = async () => {
+    if (!batch || !batchBookings || batchBookings.length === 0) {
+      toast.error("No bookings to generate invoice for");
+      return;
+    }
+
+    setGeneratingPdf(true);
+    try {
+      const invoiceDate = batch.batch_date;
+      const dueDate = new Date(new Date(batch.batch_date).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const vatRate = 0.20;
+
+      const lineItems: InvoiceLineItem[] = batchBookings.map((bb) => {
+        const booking = bb.bookings as any;
+        const sellFee = booking?.sell_fee || 0;
+        const net = sellFee / (1 + vatRate);
+        const vat = sellFee - net;
+        const dateFormatted = new Date(booking?.booking_date).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        return {
+          ref: booking?.job_code || "-",
+          date: booking?.booking_date,
+          description: `${dateFormatted} – ${booking?.artists?.name || "TBC"} – Various`,
+          net,
+          vat,
+          gross: sellFee,
+        };
+      });
+
+      const subtotal = lineItems.reduce((sum, item) => sum + item.net, 0);
+      const vatAmount = lineItems.reduce((sum, item) => sum + item.vat, 0);
+
+      // Get unique artists and venues
+      const artists = [...new Set(batchBookings.map((bb) => (bb.bookings as any)?.artists?.name).filter(Boolean))];
+      const artistLabel = artists.length === 1 ? artists[0] : "Various";
+
+      const model: InvoicePdfModel = {
+        companyName: "ENTS PRO LTD",
+        companyNo: "12345678",
+        vatNo: "GB 123 456 789",
+        companyAddress: ["Unit 1, Business Park", "London", "SW1A 1AA"],
+        bankSortCode: "00-00-00",
+        bankAccountNo: "12345678",
+        bankAccountName: "ENTS PRO LTD",
+        invoiceNumber: batch.invoice_number || "DRAFT",
+        invoiceDate,
+        dueDate,
+        isVar: true,
+        billTo: {
+          name: (batch.clients as any)?.name || "Client",
+          address: ["Address line 1", "Address line 2"],
+        },
+        billFrom: {
+          name: "ENTS PRO LTD",
+          address: ["Unit 1, Business Park", "London", "SW1A 1AA"],
+        },
+        summary: {
+          artist: artistLabel,
+          jobNo: "Various",
+          venue: "Various",
+        },
+        lineItems,
+        subtotal,
+        vatRate,
+        vatAmount,
+        totalDue: totalAmount,
+      };
+
+      await downloadInvoicePdf(model, `invoice-${batch.invoice_number || "var"}.pdf`);
+      toast.success("PDF downloaded successfully");
+    } catch (error: any) {
+      console.error("PDF generation error:", error);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -144,6 +229,10 @@ export default function InvoiceBatchDetails() {
           <h1 className="text-3xl font-bold">Invoice Batch Details</h1>
           <p className="text-muted-foreground">{batch.invoice_number}</p>
         </div>
+        <Button variant="secondary" onClick={handlePreviewPdf} disabled={generatingPdf}>
+          <Eye className="h-4 w-4 mr-2" />
+          {generatingPdf ? "Generating..." : "Preview PDF"}
+        </Button>
         {!batch.sent && (
           <Button onClick={() => sendInvoice.mutate()} disabled={sendInvoice.isPending}>
             <Send className="h-4 w-4 mr-2" />

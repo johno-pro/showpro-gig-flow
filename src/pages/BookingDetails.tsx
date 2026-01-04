@@ -27,11 +27,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus, Copy } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus, Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { BookingFormTabbed } from "@/components/BookingFormTabbed";
 import { CopyJobDialog } from "@/components/CopyJobDialog";
 import { QuickEditField } from "@/components/QuickEditField";
+import { downloadInvoicePdf, type InvoicePdfModel } from "@/lib/pdf";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +55,7 @@ export default function BookingDetails() {
     artist_payment_link: "",
   });
   const [creatingInvoice, setCreatingInvoice] = useState(false);
-
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   useEffect(() => {
     if (id) {
       fetchBooking();
@@ -193,6 +194,78 @@ export default function BookingDetails() {
       console.error(error);
     } finally {
       setCreatingInvoice(false);
+    }
+  };
+
+  const handlePreviewPdf = async () => {
+    if (!booking || !invoiceForm.amount_due) {
+      toast.error("Please enter an amount before previewing");
+      return;
+    }
+
+    setGeneratingPdf(true);
+    try {
+      const invoiceDate = new Date().toISOString().split("T")[0];
+      const dueDate = invoiceForm.due_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const amount = parseFloat(invoiceForm.amount_due);
+      const vatRate = booking.vat_applicable ? (booking.vat_rate || 0.20) : 0;
+      const netAmount = amount / (1 + vatRate);
+      const vatAmount = amount - netAmount;
+
+      const dateFormatted = new Date(booking.booking_date).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+
+      const model: InvoicePdfModel = {
+        companyName: "ENTS PRO LTD",
+        companyNo: "12345678",
+        vatNo: "GB 123 456 789",
+        companyAddress: ["Unit 1, Business Park", "London", "SW1A 1AA"],
+        bankSortCode: "00-00-00",
+        bankAccountNo: "12345678",
+        bankAccountName: "ENTS PRO LTD",
+        invoiceNumber: booking.job_code || "DRAFT",
+        invoiceDate,
+        dueDate,
+        isVar: false,
+        billTo: {
+          name: booking.clients?.name || "Client",
+          address: ["Address line 1", "Address line 2"],
+        },
+        billFrom: {
+          name: "ENTS PRO LTD",
+          address: ["Unit 1, Business Park", "London", "SW1A 1AA"],
+        },
+        summary: {
+          artist: booking.artists?.name || "TBC",
+          jobNo: booking.job_code || "TBC",
+          venue: booking.venues?.name || booking.locations?.name || "TBC",
+        },
+        lineItems: [
+          {
+            ref: booking.job_code || "DRAFT",
+            date: booking.booking_date,
+            description: `${dateFormatted} – ${booking.artists?.name || "TBC"} – ${booking.venues?.name || booking.locations?.name || "TBC"}`,
+            net: netAmount,
+            vat: vatAmount,
+            gross: amount,
+          },
+        ],
+        subtotal: netAmount,
+        vatRate,
+        vatAmount,
+        totalDue: amount,
+      };
+
+      await downloadInvoicePdf(model, `invoice-preview-${booking.job_code || "draft"}.pdf`);
+      toast.success("PDF downloaded successfully");
+    } catch (error: any) {
+      console.error("PDF generation error:", error);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -606,15 +679,23 @@ export default function BookingDetails() {
                             />
                           </div>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="gap-2 sm:gap-0">
                           <Button
                             variant="outline"
                             onClick={() => setShowInvoiceDialog(false)}
-                            disabled={creatingInvoice}
+                            disabled={creatingInvoice || generatingPdf}
                           >
                             Cancel
                           </Button>
-                          <Button onClick={handleCreateInvoice} disabled={creatingInvoice}>
+                          <Button
+                            variant="secondary"
+                            onClick={handlePreviewPdf}
+                            disabled={!invoiceForm.amount_due || generatingPdf || creatingInvoice}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            {generatingPdf ? "Generating..." : "Preview PDF"}
+                          </Button>
+                          <Button onClick={handleCreateInvoice} disabled={creatingInvoice || generatingPdf}>
                             {creatingInvoice ? "Creating..." : "Create Invoice"}
                           </Button>
                         </DialogFooter>
