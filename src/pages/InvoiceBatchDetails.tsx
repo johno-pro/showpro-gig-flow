@@ -4,12 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, FileText, Send, Eye } from "lucide-react";
+import { ArrowLeft, Trash2, FileText, Send, Eye, Download, Save } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState } from "react";
-import { downloadInvoicePdf, createBasePdfModel, type InvoicePdfModel, type InvoiceLineItem } from "@/lib/pdf";
+import { useState, useEffect } from "react";
+import { renderInvoicePdf, createBasePdfModel, type InvoicePdfModel, type InvoiceLineItem } from "@/lib/pdf";
+import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { DocumentsList } from "@/components/DocumentsList";
+import { saveDocument, getInvoiceBatchDocuments, type Document } from "@/lib/documents";
 
 export default function InvoiceBatchDetails() {
   const { id } = useParams();
@@ -23,7 +26,7 @@ export default function InvoiceBatchDetails() {
         .from("invoice_batches")
         .select(`
           *,
-          clients(name)
+          clients(name, billing_address, vat_number)
         `)
         .eq("id", id)
         .single();
@@ -129,6 +132,28 @@ export default function InvoiceBatchDetails() {
   });
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [savingPdf, setSavingPdf] = useState(false);
+  
+  // Documents state
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchDocuments();
+    }
+  }, [id]);
+
+  const fetchDocuments = async () => {
+    if (!id) return;
+    setLoadingDocs(true);
+    const docs = await getInvoiceBatchDocuments(id);
+    setDocuments(docs);
+    setLoadingDocs(false);
+  };
 
   if (isLoading) return <div>Loading...</div>;
   if (!batch) return <div>Invoice batch not found</div>;
@@ -138,6 +163,70 @@ export default function InvoiceBatchDetails() {
     return sum + (booking?.sell_fee || 0);
   }, 0) || 0;
 
+  // Get first job number for VAR naming
+  const firstJobNumber = batchBookings?.[0]?.bookings?.job_code || null;
+
+  const buildVarInvoiceModel = async (): Promise<InvoicePdfModel> => {
+    const invoiceDate = batch.batch_date;
+    const dueDate = new Date(new Date(batch.batch_date).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const vatRate = 0.20;
+
+    const lineItems: InvoiceLineItem[] = (batchBookings || []).map((bb) => {
+      const booking = bb.bookings as any;
+      const sellFee = booking?.sell_fee || 0;
+      const net = sellFee / (1 + vatRate);
+      const vat = sellFee - net;
+      const dateFormatted = new Date(booking?.booking_date).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      return {
+        ref: booking?.job_code || "-",
+        date: booking?.booking_date,
+        description: `${dateFormatted} – ${booking?.artists?.name || "TBC"} – Various`,
+        net,
+        vat,
+        gross: sellFee,
+      };
+    });
+
+    const subtotal = lineItems.reduce((sum, item) => sum + item.net, 0);
+    const vatAmount = lineItems.reduce((sum, item) => sum + item.vat, 0);
+
+    // Get unique artists
+    const artists = [...new Set((batchBookings || []).map((bb) => (bb.bookings as any)?.artists?.name).filter(Boolean))];
+    const artistLabel = artists.length === 1 ? artists[0] : "Various";
+
+    // Get company settings from database
+    const baseModel = await createBasePdfModel();
+
+    return {
+      ...baseModel,
+      invoiceNumber: batch.invoice_number || "DRAFT",
+      invoiceDate,
+      dueDate,
+      isVar: true,
+      billTo: {
+        name: (batch.clients as any)?.name || "Client",
+        address: (batch.clients as any)?.billing_address 
+          ? (batch.clients as any).billing_address.split("\n") 
+          : ["Address line 1", "Address line 2"],
+        vatNumber: (batch.clients as any)?.vat_number,
+      },
+      summary: {
+        artist: artistLabel,
+        jobNo: "Various",
+        venue: "Various",
+      },
+      lineItems,
+      subtotal,
+      vatRate,
+      vatAmount,
+      totalDue: totalAmount,
+    };
+  };
+
   const handlePreviewPdf = async () => {
     if (!batch || !batchBookings || batchBookings.length === 0) {
       toast.error("No bookings to generate invoice for");
@@ -146,69 +235,67 @@ export default function InvoiceBatchDetails() {
 
     setGeneratingPdf(true);
     try {
-      const invoiceDate = batch.batch_date;
-      const dueDate = new Date(new Date(batch.batch_date).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-      const vatRate = 0.20;
-
-      const lineItems: InvoiceLineItem[] = batchBookings.map((bb) => {
-        const booking = bb.bookings as any;
-        const sellFee = booking?.sell_fee || 0;
-        const net = sellFee / (1 + vatRate);
-        const vat = sellFee - net;
-        const dateFormatted = new Date(booking?.booking_date).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        });
-        return {
-          ref: booking?.job_code || "-",
-          date: booking?.booking_date,
-          description: `${dateFormatted} – ${booking?.artists?.name || "TBC"} – Various`,
-          net,
-          vat,
-          gross: sellFee,
-        };
-      });
-
-      const subtotal = lineItems.reduce((sum, item) => sum + item.net, 0);
-      const vatAmount = lineItems.reduce((sum, item) => sum + item.vat, 0);
-
-      // Get unique artists and venues
-      const artists = [...new Set(batchBookings.map((bb) => (bb.bookings as any)?.artists?.name).filter(Boolean))];
-      const artistLabel = artists.length === 1 ? artists[0] : "Various";
-
-      // Get company settings from database
-      const baseModel = await createBasePdfModel();
-
-      const model: InvoicePdfModel = {
-        ...baseModel,
-        invoiceNumber: batch.invoice_number || "DRAFT",
-        invoiceDate,
-        dueDate,
-        isVar: true,
-        billTo: {
-          name: (batch.clients as any)?.name || "Client",
-          address: ["Address line 1", "Address line 2"],
-        },
-        summary: {
-          artist: artistLabel,
-          jobNo: "Various",
-          venue: "Various",
-        },
-        lineItems,
-        subtotal,
-        vatRate,
-        vatAmount,
-        totalDue: totalAmount,
-      };
-
-      await downloadInvoicePdf(model, `invoice-${batch.invoice_number || "var"}.pdf`);
-      toast.success("PDF downloaded successfully");
+      const model = await buildVarInvoiceModel();
+      const blob = await renderInvoicePdf(model);
+      const url = URL.createObjectURL(blob);
+      
+      setPdfBlob(blob);
+      setPdfPreviewUrl(url);
+      setPdfPreviewOpen(true);
     } catch (error: any) {
       console.error("PDF generation error:", error);
       toast.error("Failed to generate PDF");
     } finally {
       setGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!pdfBlob || !firstJobNumber) return;
+    
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${firstJobNumber}-INVOICE-${firstJobNumber}_VAR.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSavePdf = async () => {
+    if (!pdfBlob || !batch || !id) return;
+    
+    // Validate job number
+    if (!firstJobNumber) {
+      toast.error("Cannot save: No job number found in batch bookings");
+      return;
+    }
+
+    setSavingPdf(true);
+    try {
+      const result = await saveDocument({
+        blob: pdfBlob,
+        jobNumber: firstJobNumber,
+        docType: "invoice",
+        invoiceBatchId: id,
+        invoiceId: batch.batch_invoice_id || undefined,
+        invoiceNumber: `${firstJobNumber}_VAR`,
+        isVar: true,
+      });
+
+      if (result.success) {
+        toast.success("VAR Invoice saved to system");
+        setPdfPreviewOpen(false);
+        fetchDocuments();
+      } else {
+        toast.error(result.error || "Failed to save invoice");
+      }
+    } catch (error: any) {
+      console.error("Save PDF error:", error);
+      toast.error("Failed to save invoice");
+    } finally {
+      setSavingPdf(false);
     }
   };
 
@@ -359,6 +446,32 @@ export default function InvoiceBatchDetails() {
           </CardContent>
         </Card>
       )}
+
+      {/* Documents Section */}
+      <DocumentsList
+        documents={documents}
+        onRefresh={fetchDocuments}
+        loading={loadingDocs}
+      />
+
+      {/* PDF Preview Modal */}
+      <PdfViewerModal
+        open={pdfPreviewOpen}
+        onOpenChange={(open) => {
+          setPdfPreviewOpen(open);
+          if (!open && pdfPreviewUrl) {
+            URL.revokeObjectURL(pdfPreviewUrl);
+            setPdfPreviewUrl(null);
+            setPdfBlob(null);
+          }
+        }}
+        pdfUrl={pdfPreviewUrl}
+        title={`VAR Invoice Preview - ${batch.invoice_number || "Draft"}`}
+        onDownload={handleDownloadPdf}
+        onSave={handleSavePdf}
+        saving={savingPdf}
+        canSave={!!firstJobNumber}
+      />
     </div>
   );
 }

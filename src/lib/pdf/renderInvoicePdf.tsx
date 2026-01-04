@@ -38,3 +38,11 @@ export async function openInvoicePdf(model: InvoicePdfModel): Promise<void> {
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
 }
+
+/**
+ * Renders an invoice PDF and returns it as a blob URL for in-app preview
+ */
+export async function getInvoicePdfPreviewUrl(model: InvoicePdfModel): Promise<string> {
+  const blob = await renderInvoicePdf(model);
+  return URL.createObjectURL(blob);
+}

@@ -932,6 +932,74 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          doc_type: string
+          filename: string
+          id: string
+          invoice_batch_id: string | null
+          invoice_id: string | null
+          job_number: string
+          storage_path: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_type: string
+          filename: string
+          id?: string
+          invoice_batch_id?: string | null
+          invoice_id?: string | null
+          job_number: string
+          storage_path: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          filename?: string
+          id?: string
+          invoice_batch_id?: string | null
+          invoice_id?: string | null
+          job_number?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_public_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_invoice_batch_id_fkey"
+            columns: ["invoice_batch_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emails_queue: {
         Row: {
           approved_to_send: boolean | null

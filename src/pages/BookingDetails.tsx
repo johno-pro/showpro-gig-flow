@@ -27,12 +27,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus, Copy, Eye } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Calendar, Clock, DollarSign, FileText, Plus, Copy, Eye, Download, Save } from "lucide-react";
 import { toast } from "sonner";
 import { BookingFormTabbed } from "@/components/BookingFormTabbed";
 import { CopyJobDialog } from "@/components/CopyJobDialog";
 import { QuickEditField } from "@/components/QuickEditField";
-import { downloadInvoicePdf, createBasePdfModel, type InvoicePdfModel } from "@/lib/pdf";
+import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { DocumentsList } from "@/components/DocumentsList";
+import { renderInvoicePdf, createBasePdfModel, type InvoicePdfModel } from "@/lib/pdf";
+import { saveDocument, getBookingDocuments, type Document } from "@/lib/documents";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
@@ -56,10 +59,22 @@ export default function BookingDetails() {
   });
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  
+  // PDF Preview state
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [savingPdf, setSavingPdf] = useState(false);
+  
+  // Documents state
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchBooking();
       fetchDropdownData();
+      fetchDocuments();
     }
   }, [id]);
 
@@ -110,6 +125,14 @@ export default function BookingDetails() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDocuments = async () => {
+    if (!id) return;
+    setLoadingDocs(true);
+    const docs = await getBookingDocuments(id);
+    setDocuments(docs);
+    setLoadingDocs(false);
   };
 
   const handleDelete = async () => {
@@ -197,6 +220,54 @@ export default function BookingDetails() {
     }
   };
 
+  const buildInvoiceModel = async (): Promise<InvoicePdfModel> => {
+    const invoiceDate = new Date().toISOString().split("T")[0];
+    const dueDate = invoiceForm.due_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const amount = parseFloat(invoiceForm.amount_due);
+    const vatRate = booking.vat_applicable ? (booking.vat_rate || 0.20) : 0;
+    const netAmount = amount / (1 + vatRate);
+    const vatAmount = amount - netAmount;
+
+    const dateFormatted = new Date(booking.booking_date).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+    const baseModel = await createBasePdfModel();
+
+    return {
+      ...baseModel,
+      invoiceNumber: booking.job_code || "DRAFT",
+      invoiceDate,
+      dueDate,
+      isVar: false,
+      billTo: {
+        name: booking.clients?.name || "Client",
+        address: ["Address line 1", "Address line 2"],
+      },
+      summary: {
+        artist: booking.artists?.name || "TBC",
+        jobNo: booking.job_code || "TBC",
+        venue: booking.venues?.name || booking.locations?.name || "TBC",
+      },
+      lineItems: [
+        {
+          ref: booking.job_code || "DRAFT",
+          date: booking.booking_date,
+          description: `${dateFormatted} – ${booking.artists?.name || "TBC"} – ${booking.venues?.name || booking.locations?.name || "TBC"}`,
+          net: netAmount,
+          vat: vatAmount,
+          gross: amount,
+        },
+      ],
+      subtotal: netAmount,
+      vatRate,
+      vatAmount,
+      totalDue: amount,
+    };
+  };
+
   const handlePreviewPdf = async () => {
     if (!booking || !invoiceForm.amount_due) {
       toast.error("Please enter an amount before previewing");
@@ -205,60 +276,67 @@ export default function BookingDetails() {
 
     setGeneratingPdf(true);
     try {
-      const invoiceDate = new Date().toISOString().split("T")[0];
-      const dueDate = invoiceForm.due_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-      const amount = parseFloat(invoiceForm.amount_due);
-      const vatRate = booking.vat_applicable ? (booking.vat_rate || 0.20) : 0;
-      const netAmount = amount / (1 + vatRate);
-      const vatAmount = amount - netAmount;
-
-      const dateFormatted = new Date(booking.booking_date).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-
-      // Get company settings from database
-      const baseModel = await createBasePdfModel();
-
-      const model: InvoicePdfModel = {
-        ...baseModel,
-        invoiceNumber: booking.job_code || "DRAFT",
-        invoiceDate,
-        dueDate,
-        isVar: false,
-        billTo: {
-          name: booking.clients?.name || "Client",
-          address: ["Address line 1", "Address line 2"],
-        },
-        summary: {
-          artist: booking.artists?.name || "TBC",
-          jobNo: booking.job_code || "TBC",
-          venue: booking.venues?.name || booking.locations?.name || "TBC",
-        },
-        lineItems: [
-          {
-            ref: booking.job_code || "DRAFT",
-            date: booking.booking_date,
-            description: `${dateFormatted} – ${booking.artists?.name || "TBC"} – ${booking.venues?.name || booking.locations?.name || "TBC"}`,
-            net: netAmount,
-            vat: vatAmount,
-            gross: amount,
-          },
-        ],
-        subtotal: netAmount,
-        vatRate,
-        vatAmount,
-        totalDue: amount,
-      };
-
-      await downloadInvoicePdf(model, `invoice-preview-${booking.job_code || "draft"}.pdf`);
-      toast.success("PDF downloaded successfully");
+      const model = await buildInvoiceModel();
+      const blob = await renderInvoicePdf(model);
+      const url = URL.createObjectURL(blob);
+      
+      setPdfBlob(blob);
+      setPdfPreviewUrl(url);
+      setPdfPreviewOpen(true);
     } catch (error: any) {
       console.error("PDF generation error:", error);
       toast.error("Failed to generate PDF");
     } finally {
       setGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!pdfBlob) return;
+    
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${booking.job_code || "invoice"}-INVOICE-${booking.job_code || "draft"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSavePdf = async () => {
+    if (!pdfBlob || !booking) return;
+    
+    // Validate job number
+    if (!booking.job_code) {
+      toast.error("Cannot save: Job number is required");
+      return;
+    }
+
+    setSavingPdf(true);
+    try {
+      const result = await saveDocument({
+        blob: pdfBlob,
+        jobNumber: booking.job_code,
+        docType: "invoice",
+        bookingId: id,
+        invoiceId: invoice?.id,
+        invoiceNumber: booking.job_code,
+        isVar: false,
+      });
+
+      if (result.success) {
+        toast.success("Invoice saved to system");
+        setPdfPreviewOpen(false);
+        fetchDocuments();
+      } else {
+        toast.error(result.error || "Failed to save invoice");
+      }
+    } catch (error: any) {
+      console.error("Save PDF error:", error);
+      toast.error("Failed to save invoice");
+    } finally {
+      setSavingPdf(false);
     }
   };
 
@@ -716,11 +794,37 @@ export default function BookingDetails() {
         </Card>
       )}
 
+      {/* Documents Section */}
+      <DocumentsList
+        documents={documents}
+        onRefresh={fetchDocuments}
+        loading={loadingDocs}
+      />
+
       <CopyJobDialog
         booking={booking}
         open={showCopyDialog}
         onOpenChange={setShowCopyDialog}
         onSuccess={(newId) => navigate(`/bookings/${newId}`)}
+      />
+
+      {/* PDF Preview Modal */}
+      <PdfViewerModal
+        open={pdfPreviewOpen}
+        onOpenChange={(open) => {
+          setPdfPreviewOpen(open);
+          if (!open && pdfPreviewUrl) {
+            URL.revokeObjectURL(pdfPreviewUrl);
+            setPdfPreviewUrl(null);
+            setPdfBlob(null);
+          }
+        }}
+        pdfUrl={pdfPreviewUrl}
+        title={`Invoice Preview - ${booking.job_code || "Draft"}`}
+        onDownload={handleDownloadPdf}
+        onSave={handleSavePdf}
+        saving={savingPdf}
+        canSave={!!booking.job_code}
       />
     </div>
   );
