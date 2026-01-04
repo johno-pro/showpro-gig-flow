@@ -257,6 +257,11 @@ export default function Bookings() {
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-3">
+                      {booking.job_code && (
+                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
+                          {booking.job_code}
+                        </code>
+                      )}
                       <p className="font-medium">{booking.artists?.name || "No artist assigned"}</p>
                       <Badge variant={getStatusBadgeVariant(booking.status)}>
                         {booking.status}
