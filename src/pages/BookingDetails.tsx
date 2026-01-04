@@ -531,7 +531,15 @@ export default function BookingDetails() {
                       View Invoice
                     </Button>
                   ) : (
-                    <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+                    <Dialog open={showInvoiceDialog} onOpenChange={(open) => {
+                      setShowInvoiceDialog(open);
+                      if (open && booking.sell_fee) {
+                        setInvoiceForm(prev => ({
+                          ...prev,
+                          amount_due: booking.sell_fee.toString()
+                        }));
+                      }
+                    }}>
                       <DialogTrigger asChild>
                         <Button size="sm" variant="outline" disabled={booking.invoiced}>
                           <Plus className="mr-2 h-3 w-3" />
