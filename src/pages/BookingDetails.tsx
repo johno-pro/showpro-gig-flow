@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { BookingFormTabbed } from "@/components/BookingFormTabbed";
 import { CopyJobDialog } from "@/components/CopyJobDialog";
 import { QuickEditField } from "@/components/QuickEditField";
-import { downloadInvoicePdf, type InvoicePdfModel } from "@/lib/pdf";
+import { downloadInvoicePdf, createBasePdfModel, type InvoicePdfModel } from "@/lib/pdf";
 
 export default function BookingDetails() {
   const { id } = useParams<{ id: string }>();
@@ -218,14 +218,11 @@ export default function BookingDetails() {
         year: "numeric",
       });
 
+      // Get company settings from database
+      const baseModel = await createBasePdfModel();
+
       const model: InvoicePdfModel = {
-        companyName: "ENTS PRO LTD",
-        companyNo: "12345678",
-        vatNo: "GB 123 456 789",
-        companyAddress: ["Unit 1, Business Park", "London", "SW1A 1AA"],
-        bankSortCode: "00-00-00",
-        bankAccountNo: "12345678",
-        bankAccountName: "ENTS PRO LTD",
+        ...baseModel,
         invoiceNumber: booking.job_code || "DRAFT",
         invoiceDate,
         dueDate,
@@ -233,10 +230,6 @@ export default function BookingDetails() {
         billTo: {
           name: booking.clients?.name || "Client",
           address: ["Address line 1", "Address line 2"],
-        },
-        billFrom: {
-          name: "ENTS PRO LTD",
-          address: ["Unit 1, Business Park", "London", "SW1A 1AA"],
         },
         summary: {
           artist: booking.artists?.name || "TBC",

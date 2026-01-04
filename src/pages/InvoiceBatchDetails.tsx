@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
-import { downloadInvoicePdf, type InvoicePdfModel, type InvoiceLineItem } from "@/lib/pdf";
+import { downloadInvoicePdf, createBasePdfModel, type InvoicePdfModel, type InvoiceLineItem } from "@/lib/pdf";
 
 export default function InvoiceBatchDetails() {
   const { id } = useParams();
@@ -177,14 +177,11 @@ export default function InvoiceBatchDetails() {
       const artists = [...new Set(batchBookings.map((bb) => (bb.bookings as any)?.artists?.name).filter(Boolean))];
       const artistLabel = artists.length === 1 ? artists[0] : "Various";
 
+      // Get company settings from database
+      const baseModel = await createBasePdfModel();
+
       const model: InvoicePdfModel = {
-        companyName: "ENTS PRO LTD",
-        companyNo: "12345678",
-        vatNo: "GB 123 456 789",
-        companyAddress: ["Unit 1, Business Park", "London", "SW1A 1AA"],
-        bankSortCode: "00-00-00",
-        bankAccountNo: "12345678",
-        bankAccountName: "ENTS PRO LTD",
+        ...baseModel,
         invoiceNumber: batch.invoice_number || "DRAFT",
         invoiceDate,
         dueDate,
@@ -192,10 +189,6 @@ export default function InvoiceBatchDetails() {
         billTo: {
           name: (batch.clients as any)?.name || "Client",
           address: ["Address line 1", "Address line 2"],
-        },
-        billFrom: {
-          name: "ENTS PRO LTD",
-          address: ["Unit 1, Business Park", "London", "SW1A 1AA"],
         },
         summary: {
           artist: artistLabel,

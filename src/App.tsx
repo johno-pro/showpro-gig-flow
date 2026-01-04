@@ -54,6 +54,7 @@ import JobExplorer from "./pages/JobExplorer";
 import AdminUsers from "./pages/AdminUsers";
 import RolesPermissions from "./pages/RolesPermissions";
 import ProfileSettings from "./pages/ProfileSettings";
+import CompanySettings from "./pages/CompanySettings";
 
 const queryClient = new QueryClient();
 
@@ -532,6 +533,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <ProfileSettings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/company-settings"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CompanySettings />
                   </Layout>
                 </ProtectedRoute>
               }
