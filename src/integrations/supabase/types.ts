@@ -495,6 +495,51 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          accounts_email: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          bank_sort_code: string | null
+          company_name: string
+          company_number: string | null
+          created_at: string
+          id: string
+          registered_address: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          accounts_email?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          bank_sort_code?: string | null
+          company_name?: string
+          company_number?: string | null
+          created_at?: string
+          id?: string
+          registered_address?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          accounts_email?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          bank_sort_code?: string | null
+          company_name?: string
+          company_number?: string | null
+          created_at?: string
+          id?: string
+          registered_address?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
       contact_artists: {
         Row: {
           artist_id: string

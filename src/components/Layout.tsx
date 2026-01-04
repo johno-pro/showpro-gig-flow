@@ -28,6 +28,7 @@ const navigation = [
   { name: "Invoice Batches", href: "/invoice-batches", icon: FileStack },
   { name: "Import Data", href: "/import", icon: Upload },
   { name: "Data Management", href: "/data-management", icon: Database },
+  { name: "Company Settings", href: "/admin/company-settings", icon: Building2 },
   { name: "Profile Settings", href: "/profile-settings", icon: Settings },
 ];
 
