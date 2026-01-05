@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "./lib/auth";
 import { Layout } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -417,6 +417,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/invoices" element={<Navigate to="/invoice-batches" replace />} />
             <Route
               path="/invoices/:id"
               element={
