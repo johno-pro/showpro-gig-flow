@@ -126,9 +126,12 @@ export default function Invoices() {
                   return (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-mono font-medium">
-                        {invoice.invoice_number || "—"}
+                        <Link to={`/invoices/${invoice.id}`} className="text-primary hover:underline">
+                          {invoice.invoice_number || "—"}
+                        </Link>
                       </TableCell>
                       <TableCell className="font-mono">
+                        {booking?.job_code || "—"}
                         {booking?.job_code || "—"}
                       </TableCell>
                       <TableCell>{booking?.artists?.name || "—"}</TableCell>
