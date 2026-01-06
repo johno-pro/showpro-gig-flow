@@ -41,6 +41,7 @@ import InvoiceBatches from "./pages/InvoiceBatches";
 import NewInvoiceBatch from "./pages/NewInvoiceBatch";
 import InvoiceBatchDetails from "./pages/InvoiceBatchDetails";
 import InvoiceDetails from "./pages/InvoiceDetails";
+import Invoices from "./pages/Invoices";
 import BookingSeries from "./pages/BookingSeries";
 import NewBookingSeries from "./pages/NewBookingSeries";
 import BookingSeriesDetails from "./pages/BookingSeriesDetails";
@@ -417,7 +418,16 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/invoices" element={<Navigate to="/invoice-batches" replace />} />
+            <Route
+              path="/invoices"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Invoices />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/invoices/:id"
               element={
