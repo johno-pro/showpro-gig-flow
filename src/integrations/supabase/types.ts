@@ -1341,6 +1341,36 @@ export type Database = {
           },
         ]
       }
+      oauth_credentials: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       oauth_states: {
         Row: {
           created_at: string
@@ -1436,8 +1466,6 @@ export type Database = {
           email: string | null
           email_preferences: Json | null
           full_name: string | null
-          google_calendar_refresh_token: string | null
-          google_calendar_token: string | null
           google_calendar_token_expiry: string | null
           id: string
           notification_settings: Json | null
@@ -1449,8 +1477,6 @@ export type Database = {
           email?: string | null
           email_preferences?: Json | null
           full_name?: string | null
-          google_calendar_refresh_token?: string | null
-          google_calendar_token?: string | null
           google_calendar_token_expiry?: string | null
           id: string
           notification_settings?: Json | null
@@ -1462,8 +1488,6 @@ export type Database = {
           email?: string | null
           email_preferences?: Json | null
           full_name?: string | null
-          google_calendar_refresh_token?: string | null
-          google_calendar_token?: string | null
           google_calendar_token_expiry?: string | null
           id?: string
           notification_settings?: Json | null
@@ -1899,7 +1923,6 @@ export type Database = {
           email_preferences: Json | null
           full_name: string | null
           google_calendar_token_expiry: string | null
-          has_google_calendar: boolean | null
           id: string | null
           notification_settings: Json | null
           updated_at: string | null
@@ -1911,7 +1934,6 @@ export type Database = {
           email_preferences?: Json | null
           full_name?: string | null
           google_calendar_token_expiry?: string | null
-          has_google_calendar?: never
           id?: string | null
           notification_settings?: Json | null
           updated_at?: string | null
@@ -1923,7 +1945,6 @@ export type Database = {
           email_preferences?: Json | null
           full_name?: string | null
           google_calendar_token_expiry?: string | null
-          has_google_calendar?: never
           id?: string | null
           notification_settings?: Json | null
           updated_at?: string | null

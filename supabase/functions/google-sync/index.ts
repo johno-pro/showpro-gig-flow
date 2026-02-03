@@ -39,13 +39,14 @@ serve(async (req) => {
       throw new Error('Google OAuth credentials not configured');
     }
 
+    // User-context client for auth and RLS-protected queries
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Service role client for oauth_states table
+    // Service role client for oauth_credentials and oauth_states tables (no user policies)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -55,20 +56,28 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Unauthorized');
 
-    // Check for existing token
+    // Get OAuth credentials from secure table (service role only)
+    const { data: credentials } = await supabaseAdmin
+      .from('oauth_credentials')
+      .select('access_token, refresh_token')
+      .eq('user_id', user.id)
+      .eq('provider', 'google_calendar')
+      .single();
+
+    // Get token expiry from profiles (for expiry checking)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('google_calendar_token, google_calendar_refresh_token, google_calendar_token_expiry')
+      .select('google_calendar_token_expiry')
       .eq('id', user.id)
       .single();
 
     // Helper function to refresh token if expired
     const ensureValidToken = async () => {
-      if (!profile?.google_calendar_token || !profile?.google_calendar_refresh_token) {
+      if (!credentials?.access_token || !credentials?.refresh_token) {
         return null;
       }
 
-      const expiryDate = profile.google_calendar_token_expiry ? new Date(profile.google_calendar_token_expiry) : null;
+      const expiryDate = profile?.google_calendar_token_expiry ? new Date(profile.google_calendar_token_expiry) : null;
       const now = new Date();
       
       // Refresh if token expires within 5 minutes
@@ -81,7 +90,7 @@ serve(async (req) => {
           body: new URLSearchParams({
             client_id: clientId!,
             client_secret: clientSecret!,
-            refresh_token: profile.google_calendar_refresh_token,
+            refresh_token: credentials.refresh_token,
             grant_type: 'refresh_token',
           }),
         });
@@ -93,11 +102,20 @@ serve(async (req) => {
         const tokens = await tokenResponse.json();
         const newExpiryDate = new Date(Date.now() + tokens.expires_in * 1000);
 
-        // Update token in database
-        await supabase
+        // Update token in secure oauth_credentials table
+        await supabaseAdmin
+          .from('oauth_credentials')
+          .update({
+            access_token: tokens.access_token,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id)
+          .eq('provider', 'google_calendar');
+
+        // Update expiry in profiles (non-sensitive, for UI display)
+        await supabaseAdmin
           .from('profiles')
           .update({
-            google_calendar_token: tokens.access_token,
             google_calendar_token_expiry: newExpiryDate.toISOString(),
           })
           .eq('id', user.id);
@@ -106,8 +124,46 @@ serve(async (req) => {
         return tokens.access_token;
       }
 
-      return profile.google_calendar_token;
+      return credentials.access_token;
     };
+
+    // Handle disconnect action
+    if (action === 'disconnect') {
+      if (credentials?.access_token) {
+        // Revoke token with Google
+        try {
+          await fetch(`https://oauth2.googleapis.com/revoke?token=${credentials.access_token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          });
+        } catch (error) {
+          console.warn('Failed to revoke token with Google:', error);
+          // Continue anyway to clear local tokens
+        }
+      }
+
+      // Delete from oauth_credentials
+      await supabaseAdmin
+        .from('oauth_credentials')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('provider', 'google_calendar');
+
+      // Clear expiry from profiles
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          google_calendar_token_expiry: null,
+        })
+        .eq('id', user.id);
+
+      console.log('Disconnected Google Calendar for user:', user.id);
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Calendar disconnected' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // If importing calendar events
     if (action === 'import') {

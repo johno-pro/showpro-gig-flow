@@ -45,7 +45,7 @@ serve(async (req) => {
       throw new Error('Google OAuth credentials not configured');
     }
 
-    // Use service role client to validate state token
+    // Use service role client - oauth_credentials table has no user policies
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -103,19 +103,35 @@ serve(async (req) => {
     // Calculate token expiry
     const expiryDate = new Date(Date.now() + expires_in * 1000);
 
-    // Store tokens in profiles table using validated user_id
-    const { error: updateError } = await supabase
+    // Store tokens in secure oauth_credentials table (service role only)
+    const { error: upsertError } = await supabase
+      .from('oauth_credentials')
+      .upsert({
+        user_id: userId,
+        provider: 'google_calendar',
+        access_token: access_token,
+        refresh_token: refresh_token,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,provider'
+      });
+
+    if (upsertError) {
+      console.error('Error storing tokens in oauth_credentials:', upsertError);
+      throw new Error('Failed to store calendar tokens');
+    }
+
+    // Update token expiry in profiles (this is non-sensitive and used for UI status)
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        google_calendar_token: access_token,
-        google_calendar_refresh_token: refresh_token,
         google_calendar_token_expiry: expiryDate.toISOString(),
       })
       .eq('id', userId);
 
-    if (updateError) {
-      console.error('Error storing tokens:', updateError);
-      throw new Error('Failed to store calendar tokens');
+    if (profileError) {
+      console.error('Error updating profile token expiry:', profileError);
+      // Non-fatal - tokens are stored, just expiry display might be off
     }
 
     console.log('Successfully stored Google Calendar tokens for user:', userId);
