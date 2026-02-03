@@ -1606,6 +1606,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_admin_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       venues: {
@@ -1883,6 +1890,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles_admin_view: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          email_preferences: Json | null
+          full_name: string | null
+          google_calendar_token_expiry: string | null
+          has_google_calendar: boolean | null
+          id: string | null
+          notification_settings: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_preferences?: Json | null
+          full_name?: string | null
+          google_calendar_token_expiry?: string | null
+          has_google_calendar?: never
+          id?: string | null
+          notification_settings?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_preferences?: Json | null
+          full_name?: string | null
+          google_calendar_token_expiry?: string | null
+          has_google_calendar?: never
+          id?: string | null
+          notification_settings?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       showpro_summary: {
         Row: {
