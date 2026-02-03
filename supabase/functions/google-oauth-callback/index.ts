@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// OAuth callback is a redirect-based flow, CORS headers are not needed for the main flow
+// but we keep them for error responses that might be fetched
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://showpro-gig-flow.lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -17,12 +19,15 @@ serve(async (req) => {
     const stateToken = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
+    // Get the app origin for redirects
+    const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://showpro-gig-flow.lovable.app';
+
     if (error) {
       console.log('OAuth error received:', error);
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${Deno.env.get('SUPABASE_URL')}?error=access_denied`,
+          Location: `${appOrigin}?error=access_denied`,
         },
       });
     }
@@ -119,16 +124,17 @@ serve(async (req) => {
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `${Deno.env.get('SUPABASE_URL')}?calendar_connected=true`,
+        Location: `${appOrigin}?calendar_connected=true`,
       },
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
+    const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://showpro-gig-flow.lovable.app';
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `${Deno.env.get('SUPABASE_URL')}?error=${encodeURIComponent(errorMessage)}`,
+        Location: `${appOrigin}?error=${encodeURIComponent(errorMessage)}`,
       },
     });
   }
