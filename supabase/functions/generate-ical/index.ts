@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -12,14 +12,49 @@ serve(async (req) => {
   }
 
   try {
-    const { bookingId } = await req.json();
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('generate-ical: Missing or invalid authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    // Create Supabase client with user's auth context
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Verify the token and get user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.log('generate-ical: Invalid token', claimsError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log('generate-ical: Authenticated user:', userId);
+
+    const { bookingId } = await req.json();
+
+    if (!bookingId) {
+      return new Response(
+        JSON.stringify({ error: 'Booking ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Fetch booking with all related data
+    // RLS will enforce access control - user must have permission to view this booking
     const { data: booking, error } = await supabase
       .from('bookings')
       .select(`
@@ -34,7 +69,11 @@ serve(async (req) => {
       .single();
 
     if (error || !booking) {
-      throw new Error('Booking not found');
+      console.log('generate-ical: Booking not found or access denied for:', bookingId, error?.message);
+      return new Response(
+        JSON.stringify({ error: 'Booking not found or access denied' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Calculate buffer times
@@ -107,14 +146,14 @@ serve(async (req) => {
       'END:VCALENDAR'
     ].join('\r\n');
 
-    console.log('Generated iCal for booking:', bookingId);
+    console.log('generate-ical: Successfully generated iCal for booking:', bookingId, 'by user:', userId);
 
     return new Response(
       JSON.stringify({ icsContent }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error generating iCal:', error);
+    console.error('generate-ical: Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

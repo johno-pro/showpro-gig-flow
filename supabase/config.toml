@@ -2,3 +2,15 @@ project_id = "whazayczomsdlluhcnke"
 
 [functions.zapier-invoice-upload]
 verify_jwt = false
+
+[functions.generate-ical]
+verify_jwt = false
+
+[functions.google-sync]
+verify_jwt = false
+
+[functions.google-oauth-callback]
+verify_jwt = false
+
+[functions.daily-booking-reminders]
+verify_jwt = false
