@@ -58,6 +58,47 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// Sanitize CSS color value to prevent XSS via style injection
+function sanitizeCssColor(color: string | undefined): string | null {
+  if (!color) return null;
+  
+  // Only allow valid CSS color formats:
+  // - hex: #fff, #ffffff, #ffffffff
+  // - rgb/rgba: rgb(0,0,0), rgba(0,0,0,0.5)
+  // - hsl/hsla: hsl(0,0%,0%), hsla(0,0%,0%,0.5)
+  // - named colors: red, blue, transparent, etc.
+  // - CSS variables: var(--color-name)
+  const safeColorPattern = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|var\(--[a-zA-Z0-9-]+\)|[a-zA-Z]+)$/;
+  
+  const trimmed = color.trim();
+  
+  // Block any dangerous patterns
+  if (trimmed.includes('<') || trimmed.includes('>') || trimmed.includes('expression') || 
+      trimmed.includes('javascript:') || trimmed.includes('url(') || trimmed.includes(';') ||
+      trimmed.includes('{') || trimmed.includes('}')) {
+    console.warn('Blocked potentially dangerous CSS color value:', trimmed);
+    return null;
+  }
+  
+  if (safeColorPattern.test(trimmed)) {
+    return trimmed;
+  }
+  
+  console.warn('Invalid CSS color format:', trimmed);
+  return null;
+}
+
+// Sanitize CSS key to prevent injection
+function sanitizeCssKey(key: string): string | null {
+  // Only allow alphanumeric and hyphens
+  const safeKeyPattern = /^[a-zA-Z][a-zA-Z0-9-]*$/;
+  if (safeKeyPattern.test(key)) {
+    return key;
+  }
+  console.warn('Invalid CSS key format:', key);
+  return null;
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
@@ -65,23 +106,30 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // Build CSS safely with sanitized values
+  const cssContent = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const cssVars = colorConfig
+        .map(([key, itemConfig]) => {
+          const safeKey = sanitizeCssKey(key);
+          if (!safeKey) return null;
+          
+          const rawColor = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+          const safeColor = sanitizeCssColor(rawColor);
+          
+          return safeColor ? `  --color-${safeKey}: ${safeColor};` : null;
+        })
+        .filter(Boolean)
+        .join("\n");
+      
+      return `${prefix} [data-chart=${id}] {\n${cssVars}\n}`;
+    })
+    .join("\n");
+
   return (
     <style
       dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
+        __html: cssContent,
       }}
     />
   );

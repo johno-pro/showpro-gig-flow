@@ -1,15 +1,27 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Server-to-server webhook - no CORS needed since Zapier calls directly
+// Response headers for consistency
+const responseHeaders = {
+  'Content-Type': 'application/json',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Reject browser preflight requests - this is a server-to-server webhook
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(
+      JSON.stringify({ error: 'This endpoint does not support browser requests' }),
+      { status: 405, headers: responseHeaders }
+    );
+  }
+  
+  // Only allow POST method
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed. Use POST.' }),
+      { status: 405, headers: responseHeaders }
+    );
   }
 
   try {
@@ -21,7 +33,7 @@ serve(async (req) => {
       console.error('ZAPIER_WEBHOOK_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Webhook authentication not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: responseHeaders }
       );
     }
     
@@ -29,7 +41,7 @@ serve(async (req) => {
       console.warn('Unauthorized webhook access attempt');
       return new Response(
         JSON.stringify({ error: 'Unauthorized - Invalid or missing authentication token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: responseHeaders }
       );
     }
 
@@ -50,7 +62,7 @@ serve(async (req) => {
       console.error('No file uploaded');
       return new Response(
         JSON.stringify({ error: 'No file provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: responseHeaders }
       );
     }
 
@@ -60,7 +72,7 @@ serve(async (req) => {
       console.error(`Invalid file type: ${file.type}`);
       return new Response(
         JSON.stringify({ error: 'Invalid file type. Only PDF, JPEG, and PNG files are allowed.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: responseHeaders }
       );
     }
 
@@ -70,7 +82,7 @@ serve(async (req) => {
       console.error(`File too large: ${file.size} bytes`);
       return new Response(
         JSON.stringify({ error: 'File size exceeds 10MB limit' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: responseHeaders }
       );
     }
 
@@ -107,7 +119,7 @@ serve(async (req) => {
     if (!artist) {
       return new Response(
         JSON.stringify({ error: 'Artist not found. Please provide valid artist_id or artist_email' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: responseHeaders }
       );
     }
 
@@ -125,7 +137,7 @@ serve(async (req) => {
       console.error(`Unsupported MIME type: ${file.type}`);
       return new Response(
         JSON.stringify({ error: 'Unsupported file type' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: responseHeaders }
       );
     }
 
@@ -145,7 +157,7 @@ serve(async (req) => {
       console.error('Upload error:', uploadError);
       return new Response(
         JSON.stringify({ error: 'Failed to upload file', details: uploadError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: responseHeaders }
       );
     }
 
@@ -162,7 +174,7 @@ serve(async (req) => {
       console.error('Update error:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to update artist record', details: updateError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: responseHeaders }
       );
     }
 
@@ -184,7 +196,7 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: responseHeaders,
       }
     );
   } catch (error: any) {
@@ -193,7 +205,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: responseHeaders,
       }
     );
   }
