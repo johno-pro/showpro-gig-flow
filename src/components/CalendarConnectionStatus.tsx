@@ -55,17 +55,17 @@ export function CalendarConnectionStatus() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Only read token expiry - tokens are now stored in secure oauth_credentials table
       const { data: profile } = await supabase
         .from('profiles')
-        .select('google_calendar_token, google_calendar_token_expiry')
+        .select('google_calendar_token_expiry')
         .eq('id', user.id)
         .single();
 
-      if (profile?.google_calendar_token) {
+      // If there's an expiry date, the user has connected their calendar
+      if (profile?.google_calendar_token_expiry) {
         setIsConnected(true);
-        if (profile.google_calendar_token_expiry) {
-          setExpiryDate(new Date(profile.google_calendar_token_expiry));
-        }
+        setExpiryDate(new Date(profile.google_calendar_token_expiry));
       }
     } catch (error) {
       console.error('Error loading connection status:', error);
@@ -83,37 +83,15 @@ export function CalendarConnectionStatus() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Get current token to revoke
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('google_calendar_token')
-        .eq('id', user.id)
-        .single();
+      // Disconnect via edge function (which handles token revocation securely)
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeader = session ? `Bearer ${session.access_token}` : '';
 
-      // Revoke token with Google
-      if (profile?.google_calendar_token) {
-        try {
-          await fetch(`https://oauth2.googleapis.com/revoke?token=${profile.google_calendar_token}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-          });
-        } catch (error) {
-          console.warn('Failed to revoke token with Google:', error);
-          // Continue anyway to clear local tokens
-        }
-      }
+      const { error: disconnectError } = await supabase.functions.invoke('google-sync', {
+        body: { action: 'disconnect', authHeader }
+      });
 
-      // Clear tokens from database
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          google_calendar_token: null,
-          google_calendar_refresh_token: null,
-          google_calendar_token_expiry: null,
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
+      if (disconnectError) throw disconnectError;
 
       setIsConnected(false);
       setExpiryDate(null);
