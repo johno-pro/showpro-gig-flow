@@ -1,11 +1,28 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// Use specific allowed origins instead of wildcard for security
+const getAllowedOrigin = (requestOrigin: string | null) => {
+  const allowedOrigins = [
+    'https://showpro-gig-flow.lovable.app',
+    'https://id-preview--fd264bf6-2729-4721-a3be-d4e3204fa0f5.lovable.app',
+    Deno.env.get('APP_ORIGIN'),
+  ].filter(Boolean);
+  
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  return allowedOrigins[0] || 'https://showpro-gig-flow.lovable.app';
+};
+
+const getCorsHeaders = (requestOrigin: string | null) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(requestOrigin),
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+});
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -199,6 +216,8 @@ Deno.serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error in daily-booking-reminders:', error)
+    const origin = req.headers.get('origin');
+    const corsHeaders = getCorsHeaders(origin);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

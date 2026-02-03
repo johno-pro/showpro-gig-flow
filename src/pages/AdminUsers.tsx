@@ -56,13 +56,13 @@ export default function AdminUsers() {
     enabled: !!user?.id,
   });
 
-  // Fetch all users with their roles
+  // Fetch all users with their roles using secure admin view (excludes OAuth tokens)
   const { data: users, isLoading: loadingUsers } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      // Fetch all profiles
+      // Fetch profiles from secure admin view (excludes sensitive token data)
       const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
+        .from("profiles_admin_view")
         .select("id, email, full_name, created_at")
         .order("created_at", { ascending: false });
 
@@ -76,7 +76,7 @@ export default function AdminUsers() {
       if (rolesError) throw rolesError;
 
       // Combine profiles with their roles
-      const usersWithRoles: UserWithRoles[] = profiles.map((profile) => ({
+      const usersWithRoles: UserWithRoles[] = (profiles || []).map((profile) => ({
         ...profile,
         roles: userRoles
           .filter((ur) => ur.user_id === profile.id)
