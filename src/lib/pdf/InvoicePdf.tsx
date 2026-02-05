@@ -6,6 +6,7 @@ import {
   View,
   StyleSheet,
 } from "@react-pdf/renderer";
+import { formatVatPercent } from "@/lib/utils";
 import type { InvoicePdfModel } from "./types";
 
 // A4: 595.28 x 841.89 points
@@ -416,7 +417,7 @@ export function InvoicePdf({ model }: InvoicePdfProps) {
             </View>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>
-                VAT @ {(model.vatRate * 100).toFixed(0)}%
+                VAT ({formatVatPercent(model.vatRate)})
               </Text>
               <Text style={styles.totalsValue}>
                 {formatNumber(model.vatAmount)}
