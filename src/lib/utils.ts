@@ -11,3 +11,9 @@ export function formatGBP(amount: number): string {
     currency: 'GBP',
   }).format(amount);
 }
+
+export const formatVatPercent = (rate?: number | null) => {
+  const r = Number(rate ?? 0);
+  if (!Number.isFinite(r) || r <= 0) return "0%";
+  return `${Math.round(r * 100)}%`;
+};
