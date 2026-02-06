@@ -1,28 +1,9 @@
 /**
  * Input sanitization utilities to prevent XSS and injection attacks
+ * 
+ * Note: React's JSX automatically escapes text content, preventing most XSS attacks.
+ * These utilities provide additional protection for specific use cases.
  */
-
-/**
- * Sanitizes HTML content by removing dangerous tags and attributes
- */
-export function sanitizeHtml(html: string): string {
-  if (!html) return '';
-  
-  // Remove script tags
-  let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  
-  // Remove iframe tags
-  sanitized = sanitized.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-  
-  // Remove event handlers (onclick, onerror, onload, etc.)
-  sanitized = sanitized.replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '');
-  sanitized = sanitized.replace(/\son\w+\s*=\s*[^\s>]*/gi, '');
-  
-  // Remove javascript: protocol
-  sanitized = sanitized.replace(/javascript:/gi, '');
-  
-  return sanitized;
-}
 
 /**
  * Escapes HTML special characters to prevent XSS
