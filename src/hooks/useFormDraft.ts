@@ -10,7 +10,7 @@ export function useFormDraft({ table, form }: UseFormDraftOptions) {
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const draftIdRef = useRef<string | null>(null);
   const initDone = useRef(false);
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadLatestDraft = async () => {
     try {
