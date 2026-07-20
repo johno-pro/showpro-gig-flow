@@ -37,12 +37,22 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Compute a safe same-origin `next` path from the URL to return to after auth.
+  const getNextPath = (): string => {
+    const raw = new URLSearchParams(window.location.search).get("next");
+    if (!raw) return "/";
+    // Only allow same-origin, relative paths beginning with a single "/".
+    if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+    return raw;
+  };
+
   // Don't redirect if updating password
   useEffect(() => {
     if (user && !showUpdatePassword) {
-      navigate("/");
+      navigate(getNextPath());
     }
   }, [user, showUpdatePassword, navigate]);
+
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,8 +80,9 @@ export default function Auth() {
       }
     } else {
       toast.success("Signed in successfully!");
-      navigate("/");
+      navigate(getNextPath());
     }
+
 
     setIsLoading(false);
   };
