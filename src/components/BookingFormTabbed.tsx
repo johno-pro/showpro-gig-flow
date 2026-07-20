@@ -56,7 +56,7 @@ export function BookingFormTabbed({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | undefined>(bookingId);
   const [loadingBooking, setLoadingBooking] = useState(false);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoadingRef = useRef(false);
   const [defaultCommission, setDefaultCommission] = useState<number>(15);
   const [autoCalcEnabled, setAutoCalcEnabled] = useState<boolean>(true);
