@@ -56,6 +56,8 @@ import AdminUsers from "./pages/AdminUsers";
 import RolesPermissions from "./pages/RolesPermissions";
 import ProfileSettings from "./pages/ProfileSettings";
 import CompanySettings from "./pages/CompanySettings";
+import OAuthConsent from "./pages/OAuthConsent";
+
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+
             <Route
               path="/"
               element={
